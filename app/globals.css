@@ -5,6 +5,7 @@
   --foreground: #171717;
 }
 
+/* stylelint-disable-next-line unknownAtRules */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
