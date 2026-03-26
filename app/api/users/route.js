@@ -26,14 +26,6 @@ export async function POST(request) {
       );
     }
 
-    // Prevent admin from signing up
-    if (body.email === 'admin@example.com') {
-      return NextResponse.json(
-        { error: 'Admin account cannot be created through signup. Please use the admin login.' },
-        { status: 403 }
-      );
-    }
-
     // Check if email already exists
     const existingUser = await userDb.getByEmail(body.email);
     if (existingUser) {
@@ -49,7 +41,7 @@ export async function POST(request) {
       phoneNumber: body.phoneNumber,
       address: body.address,
       role: body.role || 'user',
-      verified: false, // User needs to verify email
+      verified: body.verified !== undefined ? body.verified : true, // Admin-created users are verified by default
     });
 
     return NextResponse.json(newUser, { status: 201 });

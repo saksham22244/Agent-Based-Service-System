@@ -7,9 +7,10 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/users', label: 'Users' },
-    { href: '/agents', label: 'Agents' },
+    { href: '/user', label: 'HOME' },
+    { href: '/user/notices', label: 'NOTICES' },
+    { href: '/user/services', label: 'SERVICES' },
+    { href: '/user/applications', label: 'TRACKER' },
   ];
 
   return (
@@ -27,7 +28,7 @@ export default function Navbar() {
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
             </div>
-            <h1 className="text-white text-lg font-semibold">
+            <h1 className="text-white text-lg font-semibold tracking-wide">
               Agent Based Service System
             </h1>
           </div>
@@ -40,9 +41,9 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg font-bold tracking-wider transition-colors ${
                     isActive
-                      ? 'bg-[#7C7390] text-white'
+                      ? 'bg-[#7C7390] text-white shadow-inner'
                       : 'text-gray-300 hover:bg-[#6B6378] hover:text-white'
                   }`}
                 >
@@ -56,9 +57,12 @@ export default function Navbar() {
           <div>
             <Link
               href="/login"
-              className="px-4 py-2 rounded-lg text-gray-300 hover:bg-[#6B6378] hover:text-white font-medium transition-colors"
+              onClick={() => {
+                if(typeof window !== 'undefined') localStorage.removeItem('user');
+              }}
+              className="px-5 py-2.5 rounded-lg text-gray-300 hover:bg-red-500 hover:text-white font-bold tracking-wider transition-colors border border-gray-500 hover:border-red-600"
             >
-              Logout
+              LOGOUT
             </Link>
           </div>
         </div>

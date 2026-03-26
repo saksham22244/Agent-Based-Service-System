@@ -14,6 +14,21 @@ export async function POST(request) {
       );
     }
 
+    // First verify user/agent exists
+    let existingUser = null;
+    if (type === 'agent') {
+      existingUser = await agentDb.getById(userId);
+    } else {
+      existingUser = await userDb.getById(userId);
+    }
+
+    if (!existingUser) {
+      return NextResponse.json(
+        { error: 'User/Agent not found. Please sign up again.' },
+        { status: 404 }
+      );
+    }
+
     // Find the OTP record
     const otpRecord = await otpDb.findByUserId(userId, 'registration');
 
@@ -28,8 +43,26 @@ export async function POST(request) {
     const isValid = await bcrypt.compare(otp, otpRecord.otp);
 
     if (!isValid) {
+      // Delete the account if OTP is wrong (cancel signup)
+      if (type === 'user') {
+        try {
+          await userDb.delete(userId);
+        } catch (deleteError) {
+          console.error('Error deleting user after failed OTP:', deleteError);
+        }
+      } else if (type === 'agent') {
+        try {
+          await agentDb.delete(userId);
+        } catch (deleteError) {
+          console.error('Error deleting agent after failed OTP:', deleteError);
+        }
+      }
+      
+      // Delete the OTP record
+      await otpDb.delete(userId, 'registration');
+      
       return NextResponse.json(
-        { error: 'Invalid OTP. Please try again.' },
+        { error: 'Invalid OTP. Signup cancelled.' },
         { status: 400 }
       );
     }
@@ -68,6 +101,7 @@ export async function POST(request) {
       user: updatedUser,
       type: type || 'user',
       autoLogin, // Only true for users, false for agents
+      success: true,
     });
   } catch (error) {
     console.error('Error verifying OTP:', error);

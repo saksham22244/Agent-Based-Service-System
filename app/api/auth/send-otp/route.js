@@ -18,7 +18,7 @@ export async function POST(request) {
     let user = null;
     let isAgent = false;
 
-    // If userId is provided, check if it's a user or agent
+    // If userId is provided, check if it's a user or agent (for existing accounts)
     if (userId) {
       if (type === 'agent') {
         user = await agentDb.getById(userId);
@@ -26,17 +26,23 @@ export async function POST(request) {
       } else {
         user = await userDb.getById(userId);
       }
-    }
-
-    // If not found by ID, check by email
-    if (!user) {
-      user = await userDb.getByEmail(email);
+      
       if (!user) {
-        const agent = await agentDb.getByEmail(email);
-        if (agent) {
-          user = agent;
-          isAgent = true;
-        }
+        return NextResponse.json(
+          { error: 'User/Agent not found' },
+          { status: 404 }
+        );
+      }
+    } else {
+      // If no userId, check if email already exists (for new signups)
+      const existingUser = await userDb.getByEmail(email);
+      const existingAgent = await agentDb.getByEmail(email);
+      
+      if (existingUser || existingAgent) {
+        return NextResponse.json(
+          { error: 'Email already exists. Please use a different email or login.' },
+          { status: 400 }
+        );
       }
     }
 
@@ -51,13 +57,20 @@ export async function POST(request) {
       } else {
         // Check if this is during signup (user data might be in request)
         if (body.name && body.phoneNumber && body.address) {
+          // Hash password if provided
+          let hashedPassword = null;
+          if (body.password) {
+            hashedPassword = await bcrypt.hash(body.password, 10);
+          }
+          
           user = await userDb.create({
             name: body.name,
             email: body.email,
             phoneNumber: body.phoneNumber,
             address: body.address,
+            password: hashedPassword,
             role: 'user',
-            verified: false, // Mark as unverified
+            verified: false, // Mark as unverified - will be verified after OTP
           });
         } else {
           return NextResponse.json(
@@ -71,8 +84,8 @@ export async function POST(request) {
     // Delete any existing OTPs for this user/agent
     await otpDb.delete(user.id, 'registration');
 
-    // Hash the OTP
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
     // Save OTP to database
@@ -80,6 +93,7 @@ export async function POST(request) {
       userId: user.id,
       otp: hashedOtp,
       purpose: 'registration',
+      email: user.email,
     });
 
     // Send OTP email (this will use the actual OTP, not hashed)

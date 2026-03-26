@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { agentDb } from '@/lib/db';
+import { agentDb, userDb } from '@/lib/db';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
@@ -26,81 +26,70 @@ export async function POST(request) {
     const email = formData.get('email');
     const phoneNumber = formData.get('phoneNumber');
     const address = formData.get('address');
-    const password = formData.get('password');
     const photo = formData.get('photo');
 
     // Validate required fields
-    if (!name || !email || !phoneNumber || !address || !password) {
+    if (!name || !email || !phoneNumber || !address) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Validate password length
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Password must be at least 6 characters long' },
-        { status: 400 }
-      );
+    let photoUrl;
+
+    // Handle photo upload
+    if (photo && photo.size > 0) {
+      const bytes = await photo.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      // Create uploads directory if it doesn't exist
+      const uploadsDir = join(process.cwd(), 'public', 'uploads', 'agents');
+      if (!existsSync(uploadsDir)) {
+        await mkdir(uploadsDir, { recursive: true });
+      }
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const filename = `${timestamp}-${photo.name}`;
+      const filepath = join(uploadsDir, filename);
+
+      // Save file
+      await writeFile(filepath, buffer);
+
+      // Set photo URL
+      photoUrl = `/uploads/agents/${filename}`;
     }
 
-    // Validate photo is required
-    if (!photo || photo.size === 0) {
-      return NextResponse.json(
-        { error: 'Photo is required' },
-        { status: 400 }
-      );
-    }
-
-    // Check if email already exists
+    // Check if email already exists (as user or agent)
+    const existingUser = await userDb.getByEmail(email);
     const existingAgent = await agentDb.getByEmail(email);
-    if (existingAgent) {
+    
+    if (existingUser || existingAgent) {
       return NextResponse.json(
-        { error: 'Email already exists' },
+        { error: 'Email already exists. Please use a different email or login.' },
         { status: 400 }
       );
     }
 
-    // Prevent admin from signing up as agent
-    if (email === 'admin@example.com') {
-      return NextResponse.json(
-        { error: 'Admin account cannot be created through agent signup.' },
-        { status: 403 }
-      );
+    // Check if approved flag is set (for admin-created agents)
+    const approved = formData.get('approved') === 'true';
+    
+    // Hash password if provided
+    const password = formData.get('password');
+    let hashedPassword = null;
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10);
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Handle photo upload (required)
-    const bytes = await photo.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'agents');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
-    // Generate unique filename
-    const timestamp = Date.now();
-    const filename = `${timestamp}-${photo.name}`;
-    const filepath = join(uploadsDir, filename);
-
-    // Save file
-    await writeFile(filepath, buffer);
-
-    // Set photo URL
-    const photoUrl = `/uploads/agents/${filename}`;
 
     const newAgent = await agentDb.create({
       name,
       email,
       phoneNumber,
       address,
-      password: hashedPassword,
       photoUrl,
+      password: hashedPassword,
+      approved: approved || false, // Default to false unless explicitly set to true
     });
 
     return NextResponse.json(newAgent, { status: 201 });

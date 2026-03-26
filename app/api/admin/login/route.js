@@ -22,6 +22,14 @@ export async function POST(request) {
       );
     }
 
+    // Agent pending check
+    if (session.isAgent && !session.user.approved) {
+      return NextResponse.json(
+        { error: 'PENDING_APPROVAL' },
+        { status: 403 }
+      );
+    }
+
     // Check if user is verified (for regular users)
     if (session.user.role === 'user' && !session.user.verified) {
       return NextResponse.json(

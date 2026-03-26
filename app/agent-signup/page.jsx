@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import Image from 'next/image';
 
 export default function AgentSignupPage() {
   const router = useRouter();
@@ -17,6 +17,16 @@ export default function AgentSignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpData, setOtpData] = useState(null);
+  const [otp, setOtp] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [otpError, setOtpError] = useState('');
+
+  const heroImageSrc =
+    'https://drive.google.com/uc?export=view&id=1ymxH4XgaFJvy6MWoNpyTtiu_C9m2p6pg';
+  const logoSrc =
+    'https://drive.google.com/uc?export=view&id=1Dq2CNVPgjj7-5si_GoT7xkEpXYwT57gy';
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -30,6 +40,68 @@ export default function AgentSignupPage() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length !== 6) {
+      setOtpError('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    setVerifying(true);
+    setOtpError('');
+
+    try {
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: otpData.userId,
+          otp: otp,
+          type: otpData.type,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setOtpError(data.error || 'Invalid OTP. Signup cancelled.');
+        // Account is already deleted by backend
+        setTimeout(() => {
+          setShowOtpModal(false);
+          setOtpData(null);
+          setOtp('');
+          router.push('/agent-signup');
+        }, 2000);
+        return;
+      }
+
+      // OTP verified successfully - save to localStorage
+      localStorage.setItem('user', JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        role: 'agent',
+      }));
+
+      // Show success message
+      alert('Email verified successfully! Your account is pending admin approval.');
+      
+      // Redirect to login page (agent needs admin approval)
+      router.push('/login');
+    } catch (err) {
+      console.error('Error verifying OTP:', err);
+      setOtpError('An error occurred. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleOtpChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setOtp(value);
+    setOtpError('');
   };
 
   const handleSubmit = async (e) => {
@@ -96,13 +168,18 @@ export default function AgentSignupPage() {
         }),
       });
 
-      const otpData = await otpResponse.json();
+      const otpResponseData = await otpResponse.json();
 
       if (otpResponse.ok) {
-        // Redirect to OTP verification page
-        router.push(`/verify-otp?userId=${agentData.id}&email=${encodeURIComponent(formData.email)}&type=agent`);
+        // Show OTP modal instead of redirecting
+        setOtpData({
+          userId: agentData.id,
+          email: formData.email,
+          type: 'agent',
+        });
+        setShowOtpModal(true);
       } else {
-        setError(otpData.error || 'Failed to send OTP. Please try again.');
+        setError(otpResponseData.error || 'Failed to send OTP. Please try again.');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -111,218 +188,215 @@ export default function AgentSignupPage() {
     }
   };
 
-  const handleGoogleSignup = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await signIn('google', {
-        redirect: true,
-      });
-    } catch (err) {
-      setError('Google signup failed. Please try again.');
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Become an Agent
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign up to become a service agent
-          </p>
-        </div>
+    <div className="min-h-screen w-full bg-[#f0f4f8] flex items-center justify-center px-0">
+      <div className="w-full h-screen bg-white md:rounded-none shadow-none overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 h-full min-h-screen">
 
-        {/* Google Signup Button */}
-        <div>
-          <button
-            type="button"
-            onClick={handleGoogleSignup}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+          {/* LEFT SIDE */}
+          <div className="bg-[#c7d3e3] flex flex-col items-center justify-center p-4 md:p-8 text-center h-full">
+            <div className="relative w-full max-w-2xl aspect-square">
+              <Image
+                src={heroImageSrc}
+                alt="Agent Based Service Illustration"
+                fill
+                className="object-contain"
+                priority
               />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            Sign up with Google
-          </button>
-        </div>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-gray-50 text-gray-500">Or continue with email</span>
-          </div>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
             </div>
-          )}
+          </div>
 
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
+          {/* RIGHT SIDE */}
+          <div className="flex flex-col justify-center px-8 md:px-12 py-10 bg-[#f9fafb] h-full">
+            {/* Logo */}
+            <div className="flex justify-center mb-6">
+              <div className="h-48 w-48 rounded-full border border-gray-300 flex items-center justify-center bg-white">
+                <Image
+                  src={logoSrc}
+                  alt="Logo"
+                  width={140}
+                  height={140}
+                  className="object-contain"
+                />
+              </div>
+            </div>
+
+            {/* Form */}
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
+
               <input
-                id="name"
-                name="name"
                 type="text"
+                placeholder="Full Name"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Full Name"
+                className="input text-gray-900 placeholder-gray-500"
               />
-            </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email address
-              </label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
-              </label>
-              <input
-                id="phoneNumber"
-                name="phoneNumber"
                 type="tel"
+                placeholder="Phone Number"
                 required
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Phone Number"
+                className="input text-gray-900 placeholder-gray-500"
               />
-            </div>
 
-            <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                Address
-              </label>
               <input
-                id="address"
-                name="address"
+                type="email"
+                placeholder="Email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="input bg-blue-50 text-gray-900 placeholder-gray-500"
+              />
+
+              <input
                 type="text"
+                placeholder="Address"
                 required
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Address"
+                className="input text-gray-900 placeholder-gray-500"
               />
-            </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
               <input
-                id="password"
-                name="password"
                 type="password"
-                autoComplete="new-password"
+                placeholder="Password (min 6 characters)"
                 required
+                minLength={6}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password (min 6 characters)"
-                minLength={6}
+                className="input bg-blue-50 text-gray-900 placeholder-gray-500"
               />
-            </div>
 
-            <div>
-              <label htmlFor="photo" className="block text-sm font-medium text-gray-700 mb-1">
-                Photo <span className="text-red-500">*</span>
+               <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 text-left">
+                  Photo <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  required
+                  onChange={handlePhotoChange}
+                  className="input text-gray-900 placeholder-gray-500"
+                />
+                {photoPreview && (
+                  <div className="mt-2 flex justify-start">
+                    <img
+                      src={photoPreview}
+                      alt="Preview"
+                      className="h-24 w-24 object-cover rounded-md border border-gray-300"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#5c6bc0] hover:bg-[#4c5ab0] text-white font-semibold py-3 rounded-md transition disabled:opacity-60"
+              >
+                {loading ? 'Signing up...' : 'Sign Up as Agent'}
+              </button>
+            </form>
+
+            {/* LINKS */}
+            <div className="mt-6 text-sm text-center text-gray-600 space-y-2">
+              <p>
+                Already have an account?{' '}
+                <a href="/login" className="text-blue-600 font-semibold hover:underline">
+                  Login now
+                </a>
+              </p>
+              <p>
+                <a href="/signup" className="text-blue-600 font-semibold hover:underline">
+                  Sign up as user
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* OTP Verification Modal */}
+      {showOtpModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify Your Email</h2>
+            <p className="text-gray-600 mb-4">
+              We've sent a 6-digit OTP to <strong>{otpData?.email}</strong>
+            </p>
+            <p className="text-sm text-green-600 mb-6 bg-green-50 p-3 rounded">
+              ✓ OTP sent to your email
+            </p>
+
+            {otpError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                {otpError}
+              </div>
+            )}
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Enter 6-Digit OTP
               </label>
               <input
-                id="photo"
-                name="photo"
-                type="file"
-                accept="image/*"
-                required
-                onChange={handlePhotoChange}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                type="text"
+                value={otp}
+                onChange={handleOtpChange}
+                placeholder="000000"
+                maxLength={6}
+                className="w-full px-4 py-3 text-center text-2xl font-bold tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                autoFocus
               />
-              {photoPreview && (
-                <div className="mt-2">
-                  <img
-                    src={photoPreview}
-                    alt="Preview"
-                    className="h-24 w-24 object-cover rounded-md border border-gray-300"
-                  />
-                </div>
-              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowOtpModal(false);
+                  setOtpData(null);
+                  setOtp('');
+                  setOtpError('');
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={verifying}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleVerifyOtp}
+                disabled={verifying || otp.length !== 6}
+                className="flex-1 px-4 py-2 bg-[#5c6bc0] text-white rounded-lg hover:bg-[#4c5ab0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {verifying ? 'Verifying...' : 'Verify'}
+              </button>
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-            <p className="text-xs text-blue-800">
-              <strong>Note:</strong> After signup, your account will need admin approval before you can log in.
-            </p>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Signing up...' : 'Sign up as Agent'}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <a href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign in
-              </a>
-            </p>
-            <p className="text-sm text-gray-600 mt-2">
-              Want to sign up as a user?{' '}
-              <a href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-                User Signup
-              </a>
-            </p>
-          </div>
-        </form>
-      </div>
+      {/* Reusable input styles */}
+      <style jsx>{`
+        .input {
+          width: 100%;
+          padding: 0.75rem 1rem;
+          border-radius: 0.375rem;
+          border: 1px solid #d1d5db;
+          font-size: 0.875rem;
+          outline: none;
+        }
+        .input:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+      `}</style>
     </div>
   );
 }
