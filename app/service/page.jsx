@@ -289,77 +289,85 @@ export default function ServicePage() {
           ) : (
             <>
               {/* Services Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {services.map((service) => (
               <div 
                 key={service.id}
-                className={`relative group ${service.color} ${service.borderColor} border-2 rounded-xl md:rounded-2xl p-4 md:p-6 flex flex-col items-center justify-center text-center min-h-[160px] md:min-h-[220px] hover:shadow-lg transition-all duration-300`}
+                className="bg-white border hover:shadow-xl transition-shadow border-gray-200 rounded-xl overflow-hidden flex flex-col relative group"
               >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveService(service.id);
-                  }}
-                  className="absolute top-2 right-2 w-6 h-6 md:w-8 md:h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 text-xs md:text-base"
-                  title="Remove Service"
-                >
-                  ×
-                </button>
-                
-                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white border border-gray-200 flex items-center justify-center mb-3 md:mb-4">
-                  <span className="text-2xl md:text-3xl">{service.icon}</span>
-                </div>
-                
-                <h3 className="text-base md:text-xl font-bold text-gray-800 whitespace-pre-line leading-tight">
-                  {service.name}
-                </h3>
-                
-                <div className="mt-3 md:mt-4 flex flex-col items-center gap-2 relative z-20">
-                  <span className="px-2 py-1 md:px-3 md:py-1 bg-white/70 text-xs font-semibold text-gray-700 rounded-full border border-gray-300">
-                    SERVICE
-                  </span>
-
-                  {editingPriceId === service.id ? (
-                    <div className="flex items-center gap-1 mt-1" onClick={e => e.stopPropagation()}>
-                       <input 
-                         type="number" 
-                         value={editPriceValue} 
-                         onChange={e => setEditPriceValue(e.target.value)} 
-                         className="w-20 px-1 py-1 border border-gray-300 rounded text-sm text-gray-900 outline-none focus:ring-1 focus:ring-blue-500" 
-                         autoFocus
-                       />
-                       <button onClick={(e) => handleUpdatePrice(e, service.id)} className="bg-green-500 text-white rounded p-1.5 hover:bg-green-600"><FaCheck size={12} /></button>
-                       <button onClick={(e) => { e.stopPropagation(); setEditingPriceId(null); }} className="bg-gray-400 text-white rounded p-1.5 hover:bg-gray-500"><FaTimes size={12}/></button>
-                    </div>
+                <div className={`${service.color} ${service.borderColor} p-6 flex flex-col items-center justify-center text-center relative border-b-2`}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveService(service.id);
+                    }}
+                    className="absolute top-2 right-2 w-6 h-6 md:w-8 md:h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 text-xs md:text-base z-20"
+                    title="Remove Service"
+                  >
+                    ×
+                  </button>
+                  {service.imageUrl ? (
+                    <img src={service.imageUrl} alt={service.name} className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-full border-4 border-white shadow-sm mb-4" />
                   ) : (
-                    <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
-                      <span className="text-sm font-bold text-blue-600 bg-white/50 px-2 py-0.5 rounded-md">Rs. {service.price || 0}</span>
-                      {(userRole === 'admin' || userRole === 'superadmin') && (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setEditingPriceId(service.id); setEditPriceValue(service.price || 0); }} 
-                          className="text-gray-500 hover:text-blue-600 transition-colors p-1 bg-white/50 rounded hover:bg-white"
-                          title="Edit Price"
-                        >
-                          <FaPen size={12} />
-                        </button>
+                    <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex flex-shrink-0 items-center justify-center shadow-sm mb-4">
+                      <span className="text-3xl">{service.icon}</span>
+                    </div>
+                  )}
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 leading-tight">
+                    {service.name}
+                  </h3>
+                </div>
+
+                <div className="p-4 md:p-5 flex-1 flex flex-col bg-white">
+                  <p className="text-xs md:text-sm text-gray-600 line-clamp-3 mb-4 flex-1 text-left">
+                    {service.description || 'No description provided for this service block.'}
+                  </p>
+                  
+                  <div className="flex flex-col gap-2 relative z-20 mt-auto">
+                    {editingPriceId === service.id ? (
+                      <div className="flex items-center gap-1 mt-1" onClick={e => e.stopPropagation()}>
+                         <input 
+                           type="number" 
+                           value={editPriceValue} 
+                           onChange={e => setEditPriceValue(e.target.value)} 
+                           className="w-20 px-1 py-1 border border-gray-300 rounded text-sm text-gray-900 outline-none focus:ring-1 focus:ring-blue-500" 
+                           autoFocus
+                         />
+                         <button onClick={(e) => handleUpdatePrice(e, service.id)} className="bg-green-500 text-white rounded p-1.5 hover:bg-green-600"><FaCheck size={12} /></button>
+                         <button onClick={(e) => { e.stopPropagation(); setEditingPriceId(null); }} className="bg-gray-400 text-white rounded p-1.5 hover:bg-gray-500"><FaTimes size={12}/></button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
+                        <span className="text-base md:text-lg font-bold text-blue-600 text-left">Rs. {service.price || 0}</span>
+                        {(userRole === 'admin' || userRole === 'superadmin') && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setEditingPriceId(service.id); setEditPriceValue(service.price || 0); }} 
+                            className="text-gray-500 hover:text-blue-600 transition-colors p-1 bg-white/50 rounded hover:bg-gray-100"
+                            title="Edit Price"
+                          >
+                            <FaPen size={12} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center flex-wrap gap-2 mt-2">
+                      {service.approvalStatus === 'pending' && (
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-[10px] md:text-xs font-bold rounded-md border border-yellow-200 uppercase tracking-widest whitespace-nowrap">
+                          Pending Approval
+                        </span>
+                      )}
+                      {service.approvalStatus === 'rejected' && (
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-[10px] md:text-xs font-bold rounded-md border border-red-200 uppercase tracking-widest whitespace-nowrap">
+                          Rejected
+                        </span>
                       )}
                     </div>
-                  )}
-                  
-                  {service.approvalStatus === 'pending' && (
-                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-[10px] md:text-xs font-bold rounded-full border border-yellow-200 uppercase tracking-widest whitespace-nowrap">
-                      Pending Approval
-                    </span>
-                  )}
-                  {service.approvalStatus === 'rejected' && (
-                    <span className="px-2 py-1 bg-red-100 text-red-800 text-[10px] md:text-xs font-bold rounded-full border border-red-200 uppercase tracking-widest whitespace-nowrap">
-                      Rejected
-                    </span>
-                  )}
+                  </div>
                 </div>
 
                 {service.approvalStatus === 'pending' && (userRole === 'superadmin' || userRole === 'admin') && (
-                  <div className="absolute inset-0 bg-black/70 rounded-xl md:rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 gap-3 backdrop-blur-[2px]">
+                  <div className="absolute inset-0 bg-black/70 rounded-xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 gap-3 backdrop-blur-[2px]">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
