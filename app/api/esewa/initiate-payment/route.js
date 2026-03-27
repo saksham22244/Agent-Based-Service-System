@@ -13,6 +13,12 @@ export async function POST(req) {
     // Dynamically import esewajs
     const esewajs = await import("esewajs");
     const EsewaPaymentGateway = esewajs.EsewaPaymentGateway;
+    
+    const protocol = req.headers.get('x-forwarded-proto') || 'http';
+    const host = req.headers.get('host');
+    const origin = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`;
+    const successUrl = `${origin}/payment-success`;
+    const failureUrl = `${origin}/payment-failure`;
 
     const reqPayment = await EsewaPaymentGateway(
         amount,
@@ -22,8 +28,8 @@ export async function POST(req) {
         productId,
         process.env.MERCHANT_ID,
         process.env.SECRET,
-        process.env.SUCCESS_URL,
-        process.env.FAILURE_URL,
+        successUrl,
+        failureUrl,
         process.env.ESEWAPAYMENT_URL,
         undefined,
         undefined

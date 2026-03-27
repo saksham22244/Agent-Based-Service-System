@@ -3,6 +3,7 @@
 import Sidebar from '@/components/Sidebar';
 import { useState, useEffect } from 'react';
 import { FaPlus, FaPen, FaBell, FaEnvelope, FaCertificate, FaUserCheck, FaTimes, FaCheck, FaPalette, FaIcons, FaImage, FaListAlt, FaTrash } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 export default function ServicePage() {
   const [services, setServices] = useState([]);
@@ -12,10 +13,32 @@ export default function ServicePage() {
 
   const [newService, setNewService] = useState({ 
     name: '', 
+    price: '',
+    description: '',
     icon: '📋',
     color: 'bg-blue-50',
     borderColor: 'border-blue-200'
   });
+  const [editingPriceId, setEditingPriceId] = useState(null);
+  const [editPriceValue, setEditPriceValue] = useState('');
+
+  const handleUpdatePrice = async (e, id) => {
+    e.stopPropagation();
+    try {
+      const response = await fetch(`/api/admin/services/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ price: Number(editPriceValue) }),
+      });
+      if (!response.ok) throw new Error('Failed to update price');
+      
+      setServices(services.map(s => s.id === id ? { ...s, price: Number(editPriceValue) } : s));
+      setEditingPriceId(null);
+      toast.success('Price updated successfully!');
+    } catch (err) {
+      toast.error('Failed to update price');
+    }
+  };
   const [imageFile, setImageFile] = useState(null);
   const [formFields, setFormFields] = useState([]);
   
@@ -65,10 +88,10 @@ export default function ServicePage() {
       }
 
       setServices(services.map(s => s.id === id ? { ...s, approvalStatus: status } : s));
-      alert(`Service ${status} successfully!`);
+      toast.success(`Service ${status} successfully!`);
     } catch (err) {
       console.error('Status update err:', err);
-      alert('Failed to update service status.');
+      toast.error('Failed to update service status.');
     }
   };
 
@@ -94,7 +117,7 @@ export default function ServicePage() {
 
   const handleAddService = async () => {
     if (!newService.name.trim()) {
-      alert('Please enter a service name');
+      toast.warning('Please enter a service name');
       return;
     }
 
@@ -104,10 +127,12 @@ export default function ServicePage() {
 
       const formData = new FormData();
       formData.append('name', newService.name);
+      formData.append('description', newService.description);
       formData.append('icon', newService.icon);
       formData.append('color', newService.color);
       formData.append('borderColor', newService.borderColor);
       formData.append('active', 'true');
+      formData.append('price', newService.price);
       
       const userStr = localStorage.getItem('user');
       if (userStr) {
@@ -140,6 +165,8 @@ export default function ServicePage() {
       // Reset form
       setNewService({ 
         name: '', 
+        price: '',
+        description: '',
         icon: '📋',
         color: 'bg-blue-50',
         borderColor: 'border-blue-200'
@@ -148,11 +175,11 @@ export default function ServicePage() {
       setFormFields([]);
       setIsAddingService(false);
       
-      alert('Service created successfully!');
+      toast.success('Service created successfully!');
     } catch (err) {
       console.error('Error creating service:', err);
       setError(err.message || 'Failed to create service. Please try again.');
-      alert(err.message || 'Failed to create service. Please try again.');
+      toast.error(err.message || 'Failed to create service. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -176,11 +203,11 @@ export default function ServicePage() {
 
       // Remove the service from the list
       setServices(services.filter(service => service.id !== id));
-      alert('Service deleted successfully!');
+      toast.success('Service deleted successfully!');
     } catch (err) {
       console.error('Error deleting service:', err);
       setError(err.message || 'Failed to delete service. Please try again.');
-      alert(err.message || 'Failed to delete service. Please try again.');
+      toast.error(err.message || 'Failed to delete service. Please try again.');
     }
   };
 
@@ -287,10 +314,37 @@ export default function ServicePage() {
                   {service.name}
                 </h3>
                 
-                <div className="mt-3 md:mt-4 flex flex-col items-center gap-2">
+                <div className="mt-3 md:mt-4 flex flex-col items-center gap-2 relative z-20">
                   <span className="px-2 py-1 md:px-3 md:py-1 bg-white/70 text-xs font-semibold text-gray-700 rounded-full border border-gray-300">
                     SERVICE
                   </span>
+
+                  {editingPriceId === service.id ? (
+                    <div className="flex items-center gap-1 mt-1" onClick={e => e.stopPropagation()}>
+                       <input 
+                         type="number" 
+                         value={editPriceValue} 
+                         onChange={e => setEditPriceValue(e.target.value)} 
+                         className="w-20 px-1 py-1 border border-gray-300 rounded text-sm text-gray-900 outline-none focus:ring-1 focus:ring-blue-500" 
+                         autoFocus
+                       />
+                       <button onClick={(e) => handleUpdatePrice(e, service.id)} className="bg-green-500 text-white rounded p-1.5 hover:bg-green-600"><FaCheck size={12} /></button>
+                       <button onClick={(e) => { e.stopPropagation(); setEditingPriceId(null); }} className="bg-gray-400 text-white rounded p-1.5 hover:bg-gray-500"><FaTimes size={12}/></button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
+                      <span className="text-sm font-bold text-blue-600 bg-white/50 px-2 py-0.5 rounded-md">Rs. {service.price || 0}</span>
+                      {(userRole === 'admin' || userRole === 'superadmin') && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setEditingPriceId(service.id); setEditPriceValue(service.price || 0); }} 
+                          className="text-gray-500 hover:text-blue-600 transition-colors p-1 bg-white/50 rounded hover:bg-white"
+                          title="Edit Price"
+                        >
+                          <FaPen size={12} />
+                        </button>
+                      )}
+                    </div>
+                  )}
                   
                   {service.approvalStatus === 'pending' && (
                     <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-[10px] md:text-xs font-bold rounded-full border border-yellow-200 uppercase tracking-widest whitespace-nowrap">
@@ -409,10 +463,10 @@ export default function ServicePage() {
 
       {/* Desktop Optimized Modal */}
       {isAddingService && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[110]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white shrink-0">
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-2xl font-bold">Create New Service</h2>
@@ -436,7 +490,7 @@ export default function ServicePage() {
             </div>
 
             {/* Modal Body - Two Column Layout */}
-            <div className="p-6">
+            <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left Column - Preview */}
                 <div className="space-y-6">
@@ -452,6 +506,7 @@ export default function ServicePage() {
                       <h3 className="text-2xl font-bold text-gray-800 whitespace-pre-line leading-tight min-h-[80px] flex items-center justify-center">
                         {newService.name.toUpperCase() || 'NEW\nSERVICE'}
                       </h3>
+                      <div className="text-blue-600 font-black text-xl mb-2 mt-2">Rs. {newService.price || '0'}</div>
                       {imageFile && (
                         <div className="mt-4">
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">+ Custom Image</span>
@@ -491,7 +546,7 @@ export default function ServicePage() {
                           type="text"
                           value={newService.name}
                           onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                          className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-900 placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
                           placeholder="e.g., Birth Certificate"
                           autoFocus
                         />
@@ -502,6 +557,36 @@ export default function ServicePage() {
                       <p className="mt-2 text-sm text-gray-500">
                         Enter the service name. It will be converted to uppercase.
                       </p>
+                    </div>
+
+                    {/* Service Price */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Service Price (Rs.) *
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={newService.price}
+                        onChange={(e) => setNewService({ ...newService, price: e.target.value })}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-900 placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                        placeholder="e.g., 500"
+                        required
+                      />
+                    </div>
+
+                    {/* Service Description */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Service Description
+                      </label>
+                      <textarea
+                        rows="3"
+                        value={newService.description}
+                        onChange={(e) => setNewService({ ...newService, description: e.target.value })}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-900 placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none custom-scrollbar"
+                        placeholder="Briefly describe what this service provides..."
+                      />
                     </div>
 
                     {/* Icon Selection */}
@@ -579,17 +664,17 @@ export default function ServicePage() {
                               <div className="grid grid-cols-2 gap-3 mb-2 pr-8">
                                 <div>
                                   <label className="text-xs font-semibold text-gray-600 block">Field Label</label>
-                                  <input type="text" placeholder="e.g. Applicant Name" value={field.label} onChange={(e) => handleFieldChange(field.id, 'label', e.target.value)} className="w-full mt-1 border border-gray-300 px-2 py-1.5 text-sm rounded outline-none focus:ring-1 focus:ring-blue-500" required />
+                                  <input type="text" placeholder="e.g. Applicant Name" value={field.label} onChange={(e) => handleFieldChange(field.id, 'label', e.target.value)} className="w-full mt-1 border border-gray-300 text-gray-900 placeholder-gray-500 px-2 py-1.5 text-sm rounded outline-none focus:ring-1 focus:ring-blue-500" required />
                                 </div>
                                 <div>
                                   <label className="text-xs font-semibold text-gray-600 block">Database ID (e.g. fullName)</label>
-                                  <input type="text" placeholder="e.g. fullName" value={field.name} onChange={(e) => handleFieldChange(field.id, 'name', e.target.value)} className="w-full mt-1 border border-gray-300 px-2 py-1.5 text-sm rounded outline-none focus:ring-1 focus:ring-blue-500" required />
+                                  <input type="text" placeholder="e.g. fullName" value={field.name} onChange={(e) => handleFieldChange(field.id, 'name', e.target.value)} className="w-full mt-1 border border-gray-300 text-gray-900 placeholder-gray-500 px-2 py-1.5 text-sm rounded outline-none focus:ring-1 focus:ring-blue-500" required />
                                 </div>
                               </div>
                               <div className="flex gap-4 items-center mt-3 bg-white p-2 rounded border border-gray-100">
                                 <div className="flex-1">
                                   <label className="text-xs font-semibold text-gray-600 block">Input Type</label>
-                                  <select value={field.type} onChange={(e) => handleFieldChange(field.id, 'type', e.target.value)} className="w-full mt-1 border border-gray-300 px-2 py-1 text-sm rounded outline-none focus:ring-1 focus:ring-blue-500">
+                                  <select value={field.type} onChange={(e) => handleFieldChange(field.id, 'type', e.target.value)} className="w-full mt-1 border border-gray-300 text-gray-900 px-2 py-1 text-sm rounded outline-none focus:ring-1 focus:ring-blue-500">
                                     <option value="text">Short Text</option>
                                     <option value="email">Email</option>
                                     <option value="number">Number</option>
@@ -659,15 +744,18 @@ export default function ServicePage() {
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
+            {/* Action Buttons */}
+            <div className="p-6 bg-white border-t border-gray-200 shrink-0">
+              <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
                   <button
                     onClick={() => {
                       setIsAddingService(false);
                       setNewService({ 
                         name: '', 
+                        price: '',
+                        description: '',
                         icon: '📋',
                         color: 'bg-blue-50',
                         borderColor: 'border-blue-200'
@@ -687,7 +775,6 @@ export default function ServicePage() {
                   </button>
                 </div>
               </div>
-            </div>
           </div>
         </div>
       )}

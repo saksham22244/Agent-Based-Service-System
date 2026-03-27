@@ -223,6 +223,7 @@ export default function SignupPage() {
                 value={form.name}
                 onChange={handleChange('name')}
                 className="input text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <input
@@ -232,6 +233,7 @@ export default function SignupPage() {
                 value={form.phoneNumber}
                 onChange={handleChange('phoneNumber')}
                 className="input text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <input
@@ -241,6 +243,7 @@ export default function SignupPage() {
                 value={form.email}
                 onChange={handleChange('email')}
                 className="input bg-blue-50 input text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <input
@@ -250,6 +253,7 @@ export default function SignupPage() {
                 value={form.address}
                 onChange={handleChange('address')}
                 className="input text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <input
@@ -259,6 +263,7 @@ export default function SignupPage() {
                 value={form.password}
                 onChange={handleChange('password')}
                 className="input bg-blue-50 text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <input
@@ -268,12 +273,14 @@ export default function SignupPage() {
                 value={form.confirmPassword}
                 onChange={handleChange('confirmPassword')}
                 className="input text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <button
                 type="submit"
                 disabled={submitting}
                 className="w-full bg-[#5c6bc0] hover:bg-[#4c5ab0] text-white font-semibold py-3 rounded-md transition disabled:opacity-60"
+                suppressHydrationWarning
               >
                 {submitting ? 'Sending OTP...' : 'Sign Up'}
               </button>

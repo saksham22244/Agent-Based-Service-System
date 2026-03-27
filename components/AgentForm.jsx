@@ -8,6 +8,7 @@ export default function AgentForm({ onSubmit, onCancel, initialData }) {
     email: initialData?.email || '',
     phoneNumber: initialData?.phoneNumber || '',
     address: initialData?.address || '',
+    paymentDetails: initialData?.paymentDetails || '',
   });
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(initialData?.photo ? URL.createObjectURL(initialData.photo) : null);
@@ -27,6 +28,7 @@ export default function AgentForm({ onSubmit, onCancel, initialData }) {
     formDataToSend.append('email', formData.email);
     formDataToSend.append('phoneNumber', formData.phoneNumber);
     formDataToSend.append('address', formData.address);
+    formDataToSend.append('paymentDetails', formData.paymentDetails);
     if (photo) {
       formDataToSend.append('photo', photo);
     }
@@ -88,6 +90,21 @@ export default function AgentForm({ onSubmit, onCancel, initialData }) {
           onChange={(e) => setFormData({ ...formData, address: e.target.value })}
           rows={3}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="paymentDetails" className="block text-sm font-medium text-gray-700">
+          Payment Details / eSewa Number
+        </label>
+        <input
+          type="text"
+          id="paymentDetails"
+          required
+          placeholder="e.g., eSewa: 9812345678"
+          value={formData.paymentDetails}
+          onChange={(e) => setFormData({ ...formData, paymentDetails: e.target.value })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border bg-gray-50"
         />
       </div>
 

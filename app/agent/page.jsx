@@ -2,233 +2,408 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Sidebar from '@/components/Sidebar';
+import Link from 'next/link';
+import { FaBell, FaUserCircle, FaEnvelope, FaMapMarkerAlt, FaPhoneAlt, FaTimes } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
-export default function AgentPage() {
+export default function AgentHomePage() {
   const router = useRouter();
   const [agent, setAgent] = useState(null);
   const [notices, setNotices] = useState([]);
+  const [services, setServices] = useState([]);
+  const [showProfile, setShowProfile] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [noticesLoading, setNoticesLoading] = useState(false);
+
+  // Application Form Modal State
+  const [selectedService, setSelectedService] = useState(null);
+  const [dynamicValues, setDynamicValues] = useState({});
+  const [fileUploads, setFileUploads] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Get agent from localStorage
-    const agentData = localStorage.getItem('user');
-    if (agentData) {
-      const parsedAgent = JSON.parse(agentData);
-      setAgent(parsedAgent);
-      
-      // Fetch agent notices
-      fetchAgentNotices(parsedAgent.id);
-    } else {
-      // No agent found, redirect to login
+    const userData = localStorage.getItem('user');
+    if (!userData) {
       router.push('/login');
+      return;
     }
-    setLoading(false);
-  }, [router]);
 
-  const fetchAgentNotices = async (agentId) => {
-    setNoticesLoading(true);
-    try {
-      const response = await fetch(`/api/agents/${agentId}/notices`);
-      const data = await response.json();
-      setNotices(data.notices || []);
-    } catch (error) {
-      console.error('Error fetching notices:', error);
-      toast.error('Failed to load notices');
-    } finally {
-      setNoticesLoading(false);
+    const parsedUser = JSON.parse(userData);
+    if (parsedUser.role !== 'agent') {
+      router.push('/dashboard');
+      return;
     }
-  };
 
-  const handleMarkAsRead = async (noticeId) => {
-    try {
-      const response = await fetch(`/api/notices/${noticeId}/read`, {
-        method: 'POST',
-      });
+    setAgent(parsedUser);
+    
+    // Fetch data for the dashboard
+    Promise.all([
+      fetch(`/api/agents/${parsedUser.id}/notices`).then(res => res.json()),
+      fetch('/api/admin/services').then(res => res.json())
+    ]).then(([noticesData, servicesData]) => {
+      setNotices(noticesData.notices || []);
+      const activeServices = (servicesData.services || []).filter(s => s.approvalStatus === 'approved');
       
-      if (response.ok) {
-        // Update local state
-        setNotices(notices.map(notice => 
-          notice.id === noticeId 
-            ? { ...notice, read: true, readAt: new Date().toISOString() }
-            : notice
-        ));
-        toast.success('Notice marked as read');
-      } else {
-        toast.error('Failed to mark notice as read');
-      }
-    } catch (error) {
-      console.error('Error marking notice as read:', error);
-      toast.error('An error occurred');
-    }
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'low': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+      // Fallback dummy services mimicking the screenshot if database lacks exact matches
+      const displayServices = activeServices.length > 0 ? activeServices : [
+        { 
+          id: '1', 
+          name: 'MARRIAGE CERTIFICATE',
+          color: 'bg-[#FFF9E6]',
+          borderColor: 'border-[#F8E39A]',
+          imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Prithvi_Narayan_Shah_1.jpg/220px-Prithvi_Narayan_Shah_1.jpg'
+        },
+        { 
+          id: '2', 
+          name: 'SSSS',
+          color: 'bg-[#EAFAEE]',
+          borderColor: 'border-[#adebbd]',
+          imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Prithvi_Narayan_Shah_1.jpg/220px-Prithvi_Narayan_Shah_1.jpg'
+        }
+      ];
+      setServices(displayServices);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
     router.push('/login');
   };
 
+  const handleApplyClick = (service) => {
+    setSelectedService(service);
+    setDynamicValues({});
+    setFileUploads({});
+  };
+
+  const handleFieldChange = (name, value) => {
+    setDynamicValues(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (name, file) => {
+    setFileUploads(prev => ({ ...prev, [name]: file }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const userObj = JSON.parse(localStorage.getItem('user'));
+      const formData = new FormData();
+      formData.append('userId', userObj.id);
+      formData.append('serviceId', selectedService.id);
+      
+      formData.append('formData', JSON.stringify(dynamicValues));
+
+      Object.keys(fileUploads).forEach(key => {
+        if (fileUploads[key]) {
+          formData.append(key, fileUploads[key]);
+        }
+      });
+
+      const res = await fetch('/api/applications', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) throw new Error('Submission failed');
+      const applicationData = await res.json();
+      
+      const esewaRes = await fetch('/api/esewa/initiate-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: selectedService.price !== undefined ? selectedService.price : 500, 
+          productId: applicationData.id,
+          userId: userObj.id
+        })
+      });
+      
+      const esewaData = await esewaRes.json();
+      
+      if (esewaData.url) {
+        window.location.href = esewaData.url;
+      } else {
+         throw new Error('Failed to retrieve eSewa payment URL');
+      }
+      
+    } catch (err) {
+      toast.error('Failed to submit application or initiate payment. Please check your inputs and try again.');
+      console.error(err);
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[#514b62]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
       </div>
     );
   }
 
-  if (!agent) {
-    return null; // Will redirect
-  }
+  if (!agent) return null;
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar />
+    <div className="flex h-screen bg-[#514b62] overflow-hidden font-sans">
       
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Header */}
-        <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 flex-shrink-0"></div>
-        <div className="bg-white px-6 py-4 border-b flex-shrink-0 flex items-center justify-between shadow-sm gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Agent Dashboard</h1>
-            <p className="text-xs text-gray-500 mt-1">Manage your services, applications, and notices.</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
-              Welcome, {agent.name}
-            </span>
-          </div>
+      {/* Left Navigation Area */}
+      <div className="w-[300px] flex flex-col items-center pt-8 z-10">
+        
+        {/* Logo Circle */}
+        <div className="w-40 h-40 bg-white rounded-full flex flex-col items-center justify-center shadow-lg mb-10 p-2">
+           <div className="w-12 h-12 rounded-full border-[1.5px] border-[#103061] flex items-center justify-center mb-1 overflow-hidden bg-[#e6effc]">
+             {/* Abstract agent silhouette mimicking logo */}
+             <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-[#103061] mt-2">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+             </svg>
+           </div>
+           <div className="text-center font-serif text-[#103061]">
+             <div className="text-[12px] font-bold tracking-tight leading-none uppercase">AGENT BASED</div>
+             <div className="text-[8px] tracking-widest font-semibold mt-0.5 text-gray-500 uppercase">SERVICE SYSTEM</div>
+           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto p-6 w-full">
-          <div className="max-w-7xl mx-auto space-y-6">
-                <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                  <h3 className="text-lg font-semibold text-green-900 mb-2">Welcome!</h3>
-                  <p className="text-green-800">
-                    You are logged in as an agent. This is your agent dashboard.
-                  </p>
-                </div>
+        {/* Vertical Links */}
+        <div className="w-full px-10 space-y-6">
+           <Link href="/agent" className="block w-full text-center py-2.5 bg-[#7888c0] text-white rounded-lg font-bold tracking-wide shadow-md">
+             HOME
+           </Link>
+           <Link href="/notice" className="block w-full text-center py-2.5 text-white font-bold tracking-wide hover:bg-[#7888c0]/40 rounded-lg transition-colors">
+             NOTICES
+           </Link>
+           <Link href="/service" className="block w-full text-center py-2.5 text-white font-bold tracking-wide hover:bg-[#7888c0]/40 rounded-lg transition-colors">
+             SERVICES
+           </Link>
+           <Link href="/request" className="block w-full text-center py-2.5 text-white font-bold tracking-wide hover:bg-[#7888c0]/40 rounded-lg transition-colors">
+             REQUESTS
+           </Link>
+           <Link href="/payment-history" className="block w-full text-center py-2.5 text-white font-bold tracking-wide hover:bg-[#7888c0]/40 rounded-lg transition-colors">
+             PAYMENTS
+           </Link>
+        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-gray-900 mb-2">Your Information</h3>
-                    <p className="text-sm text-gray-600"><strong>Name:</strong> {agent.name}</p>
-                    <p className="text-sm text-gray-600"><strong>Email:</strong> {agent.email}</p>
-                    <p className="text-sm text-gray-600"><strong>Phone:</strong> {agent.phoneNumber || 'N/A'}</p>
-                    <p className="text-sm text-gray-600"><strong>Address:</strong> {agent.address || 'N/A'}</p>
-                  </div>
+      </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-gray-900 mb-2">Account Status</h3>
-                    <p className="text-sm text-gray-600">
-                      <strong>Status:</strong>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-3 ${
-                        agent.approved 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {agent.approved ? 'Approved' : 'Pending Approval'}
-                      </span>
-                    </p>
-                  </div>
-                </div>
+      {/* Main Window Area */}
+      <div className="flex-1 flex flex-col relative h-full">
+        
+        {/* Top Header */}
+        <div className="h-28 flex items-center justify-between px-10 text-white z-10 w-full pr-16 translate-y-2">
+           <h1 className="text-[34px] font-serif font-bold tracking-wide" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.2)' }}>
+             AGENT BASED&nbsp;&nbsp;SERVICE SYSTEM
+           </h1>
+           <div className="flex items-center space-x-12">
+              <button className="hover:opacity-80 transition-opacity">
+                <FaBell size={32} />
+              </button>
+              <button className="hover:opacity-80 transition-opacity p-0.5 rounded-full border-2 border-white" onClick={() => setShowProfile(!showProfile)}>
+                <FaUserCircle size={38} />
+              </button>
+           </div>
+        </div>
 
-                {/* Notices Section */}
-                <div className="mt-8">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Your Notices</h3>
-                    <span className="text-sm text-gray-500">
-                      {notices.filter(n => !n.read).length} unread
-                    </span>
-                  </div>
-                  
-                  {noticesLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
-                  ) : notices.length === 0 ? (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                      <p className="text-gray-500">No notices received yet.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {notices.map((notice) => (
-                        <div
-                          key={notice.id}
-                          className={`bg-white border rounded-lg p-4 hover:shadow-md transition-all ${
-                            notice.read ? 'border-gray-200 opacity-75' : 'border-blue-200 shadow-sm'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="font-semibold text-gray-900">{notice.title}</h4>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(notice.priority)}`}>
-                                  {notice.priority?.toUpperCase() || 'NORMAL'}
-                                </span>
-                                {!notice.read && (
-                                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                                    NEW
-                                  </span>
-                                )}
+        {/* Custom Profile Dropdown exact match */}
+        {showProfile && (
+           <div className="absolute top-28 right-16 bg-white w-96 rounded-2xl shadow-2xl z-50 border border-gray-200 font-sans overflow-hidden">
+              <div className="p-4 flex justify-end">
+                 <button onClick={() => setShowProfile(false)}>
+                   <FaTimes className="text-gray-600 hover:text-red-500" size={18} />
+                 </button>
+              </div>
+              <div className="px-8 pb-4 flex items-center gap-6 border-b border-gray-200">
+                 <div className="text-black">
+                   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                 </div>
+                 <span className="font-bold text-gray-800 text-lg tracking-wide uppercase">{agent?.name || 'ALICE GREEN'}</span>
+              </div>
+              <div className="p-8 space-y-5">
+                 <div className="flex items-center gap-5 text-gray-800 text-[15px] font-medium">
+                    <FaEnvelope size={18} className="text-black" /> 
+                    <span>{agent?.email || 'Alicegreen@gmail.com'}</span>
+                 </div>
+                 <div className="flex items-center gap-5 text-gray-800 text-[15px] font-medium">
+                    <FaMapMarkerAlt size={18} className="text-black" /> 
+                    <span>{agent?.address || 'Naxal, Kathmandu'}</span>
+                 </div>
+                 <div className="flex items-center gap-5 text-gray-800 text-[15px] font-medium">
+                    <FaPhoneAlt size={18} className="text-black" /> 
+                    <span>{agent?.phoneNumber || '9812345678'}</span>
+                 </div>
+              </div>
+              <div className="flex justify-between items-center px-8 py-5 border-t border-gray-200 text-sm font-semibold text-[#6a80c9]">
+                 <button className="hover:underline">Edit Profile</button>
+                 <button onClick={handleLogout} className="hover:underline">Logout</button>
+              </div>
+           </div>
+        )}
+
+        {/* White Background Inner Content */}
+        <div className="flex-1 bg-white w-full rounded-tl-xl mb-4 mr-0 flex overflow-hidden shadow-2xl border-l border-t border-gray-300">
+           
+           <div className="flex-1 p-12 overflow-y-auto w-full">
+              <h2 className="text-center text-3xl font-serif font-black mb-16 tracking-wide text-black" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.1)' }}>
+                SERVICE REQUEST FORM
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl mx-auto">
+                 {services.map(s => {
+                    // Safe fallbacks for colors if not perfectly defined by the target database objects
+                    const bgColor = s.color || 'bg-[#FFF9E6]';
+                    const borderColor = s.borderColor || 'border-[#F8E39A]';
+                    let displayName = s.name.toUpperCase();
+
+                    return (
+                      <div 
+                        key={s.id} 
+                        className="bg-white border border-gray-200 rounded-[20px] shadow-[0px_4px_15px_rgba(0,0,0,0.05)] hover:-translate-y-1 hover:shadow-[0px_10px_25px_rgba(0,0,0,0.15)] transition-all flex flex-col overflow-hidden group w-full"
+                      >
+                         <div className={`${bgColor} ${borderColor} border-b-[1.5px] flex flex-col items-center justify-center p-6 relative shrink-0`}>
+                            {s.imageUrl ? (
+                              <img src={s.imageUrl} alt={s.name} className="w-[80px] h-[80px] object-cover rounded-full border-[3px] border-white shadow-[0_2px_8px_rgba(0,0,0,0.1)] mb-4 group-hover:scale-105 transition-transform" />
+                            ) : (
+                              <div className="w-[80px] h-[80px] bg-white rounded-full flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.1)] mb-4 group-hover:scale-105 transition-transform">
+                                <span className="text-3xl text-gray-400">{s.icon || '📄'}</span>
                               </div>
-                              <p className="text-sm text-gray-700 mb-2">{notice.message}</p>
-                              <p className="text-xs text-gray-500">
-                                Received: {new Date(notice.createdAt).toLocaleString()}
-                              </p>
-                              {notice.readAt && (
-                                <p className="text-xs text-green-600">
-                                  Read: {new Date(notice.readAt).toLocaleString()}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex flex-col gap-2 ml-4">
-                              {!notice.read && (
-                                <button
-                                  onClick={() => handleMarkAsRead(notice.id)}
-                                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                                >
-                                  Mark as Read
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                            )}
+                            <h3 className="text-center font-bold text-[#0A1930] text-[15px] tracking-wide leading-tight px-3 w-full">
+                              {displayName}
+                            </h3>
+                         </div>
+                         <div className="p-6 flex flex-col flex-1 bg-white justify-between">
+                           <p className="text-[13px] text-[#4f5b66] leading-relaxed line-clamp-2 mb-4">
+                             {s.description || 'No description provided for this service block.'}
+                           </p>
+                           <div>
+                             <div className="text-[16px] font-bold text-blue-600 mb-3">Rs. {s.price || 0}</div>
+                             <button onClick={(e) => { e.preventDefault(); handleApplyClick(s); }} className="w-full bg-[#1c5fdf] hover:bg-[#154bb3] text-white font-medium tracking-wide py-2.5 rounded-lg transition-colors text-sm shadow-[0_2px_4px_rgba(28,95,223,0.3)]">
+                               Apply Now
+                             </button>
+                           </div>
+                         </div>
+                      </div>
+                    );
+                 })}
+              </div>
+           </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <h3 className="font-semibold text-gray-900 mb-4">Available Actions</h3>
-                  <div className="flex flex-wrap gap-3">
-                    <button className="px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm">
-                      View Services
-                    </button>
-                    <button className="px-5 py-2.5 bg-gray-700 text-white font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-sm">
-                      My Requests
-                    </button>
-                  </div>
-                </div>
-          </div>
+           {/* Vertical Gray Line Divider */}
+           <div className="w-[1.5px] bg-gray-300 h-[85%] my-auto shadow-sm"></div>
+
+           {/* Notices Column */}
+           <div className="w-80 border-l border-gray-200 bg-gray-50 p-8 overflow-y-auto">
+              <div className="flex justify-between items-center mb-10">
+                 <h3 className="font-bold font-sans text-lg tracking-wide text-black">Notices</h3>
+                 <FaBell className="text-blue-500" size={20} />
+              </div>
+              
+              <div className="space-y-4 flex-col">
+                 {notices.length === 0 ? (
+                   <p className="text-sm text-gray-500 italic">No new notices from admin or agents.</p>
+                 ) : notices.map(n => (
+                   <div key={n.id} className="border-b border-gray-100 pb-3">
+                      <p className="text-sm font-bold text-gray-800">{n.title}</p>
+                      <p className="text-xs text-gray-500 line-clamp-2 mt-1">{n.message}</p>
+                   </div>
+                 ))}
+                 
+                 {/* Visual stubs if empty to match long list potentially */}
+                 {notices.length === 0 && (
+                   <div className="opacity-20 pointer-events-none mt-10">
+                     <div className="border-b border-gray-200 pb-3 mb-4">
+                        <div className="w-1/2 h-3 bg-gray-400 rounded mb-2"></div>
+                        <div className="w-full h-2 bg-gray-300 rounded mb-1"></div>
+                     </div>
+                     <div className="border-b border-gray-200 pb-3 mb-4">
+                        <div className="w-2/3 h-3 bg-gray-400 rounded mb-2"></div>
+                        <div className="w-full h-2 bg-gray-300 rounded mb-1"></div>
+                     </div>
+                   </div>
+                 )}
+              </div>
+           </div>
+           
         </div>
       </div>
-      <ToastContainer position="top-right" autoClose={3000} />
+      
+      {/* Dynamic Application Form Modal */}
+      {selectedService && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-black font-sans">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 flex justify-between items-center text-white">
+              <div>
+                <h3 className="text-xl font-bold">Apply for {selectedService.name}</h3>
+                <p className="text-sm text-blue-100 mt-1">Please fill out all required fields below securely.</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 px-4 py-2 rounded-lg text-white font-bold text-lg border border-white/30 shadow-sm">
+                   Rs. {selectedService.price || 0}
+                </div>
+                <button 
+                  onClick={() => setSelectedService(null)}
+                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shadow-sm"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 bg-gray-50">
+               {(!selectedService.formFields || selectedService.formFields.length === 0) ? (
+                 <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-xl text-center">
+                   <p className="text-yellow-800 font-medium">No dynamic fields were configured for this service.</p>
+                   <p className="text-sm text-yellow-600 mt-2">You can still submit to reserve an empty slot and generate a transaction ticket.</p>
+                 </div>
+               ) : (
+                 <div className="space-y-5">
+                   {selectedService.formFields.map((field) => (
+                     <div key={field.id} className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+                        <label className="block text-sm font-bold text-gray-700 mb-1">
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </label>
+                        
+                        {field.type === 'text' || field.type === 'email' || field.type === 'number' || field.type === 'date' ? (
+                          <input 
+                            type={field.type}
+                            required={field.required}
+                            onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder={`Enter ${field.label.toLowerCase()}...`}
+                          />
+                        ) : field.type === 'file' ? (
+                          <input 
+                            type="file"
+                            required={field.required}
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleFileChange(field.name, e.target.files[0]);
+                              }
+                            }}
+                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mt-1"
+                          />
+                        ) : null}
+                     </div>
+                   ))}
+                 </div>
+               )}
+               
+               <div className="mt-8">
+                 <button 
+                   type="submit"
+                   disabled={isSubmitting}
+                   className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3.5 rounded-xl shadow-lg transition-transform focus:scale-95 text-lg"
+                 >
+                   {isSubmitting ? 'Processing Application...' : 'Continue to Payment ➔'}
+                 </button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

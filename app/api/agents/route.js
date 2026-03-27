@@ -26,6 +26,7 @@ export async function POST(request) {
     const email = formData.get('email');
     const phoneNumber = formData.get('phoneNumber');
     const address = formData.get('address');
+    const paymentDetails = formData.get('paymentDetails') || '';
     const photo = formData.get('photo');
 
     // Validate required fields
@@ -87,6 +88,8 @@ export async function POST(request) {
       email,
       phoneNumber,
       address,
+      paymentDetails,
+      totalEarnings: 0,
       photoUrl,
       password: hashedPassword,
       approved: approved || false, // Default to false unless explicitly set to true

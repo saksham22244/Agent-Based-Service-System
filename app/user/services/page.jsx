@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
+import { toast } from 'react-toastify';
 
 export default function UserServicesPage() {
   const router = useRouter();
@@ -80,7 +81,7 @@ export default function UserServicesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: 500, 
+          amount: selectedService.price !== undefined ? selectedService.price : 500, 
           productId: applicationData.id,
           userId: user.id
         })
@@ -95,7 +96,7 @@ export default function UserServicesPage() {
       }
       
     } catch (err) {
-      alert('Failed to submit application or initiate payment. Please check your inputs and try again.');
+      toast.error('Failed to submit application or initiate payment. Please check your inputs and try again.');
       console.error(err);
       setIsSubmitting(false);
     }
@@ -140,6 +141,7 @@ export default function UserServicesPage() {
                       <p className="text-sm text-gray-600 line-clamp-3 mb-4 flex-1">
                         {service.description || 'No description provided for this service block.'}
                       </p>
+                      <div className="text-lg font-bold text-blue-600 mb-2">Rs. {service.price || 0}</div>
                       <button 
                         onClick={() => handleApplyClick(service)}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors"
@@ -164,12 +166,17 @@ export default function UserServicesPage() {
                 <h3 className="text-xl font-bold">Apply for {selectedService.name}</h3>
                 <p className="text-sm text-blue-100 mt-1">Please fill out all required fields below securely.</p>
               </div>
-              <button 
-                onClick={() => setSelectedService(null)}
-                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 px-4 py-2 rounded-lg text-white font-bold text-lg border border-white/30 shadow-sm">
+                   Rs. {selectedService.price || 0}
+                </div>
+                <button 
+                  onClick={() => setSelectedService(null)}
+                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shadow-sm"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 bg-gray-50">

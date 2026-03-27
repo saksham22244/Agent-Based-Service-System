@@ -3,13 +3,20 @@
 import Sidebar from '@/components/Sidebar';
 import { useState, useEffect } from 'react';
 import { FaCheckCircle, FaTimesCircle, FaFileAlt, FaEye } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 export default function RequestPage() {
   const [applications, setApplications] = useState([]);
   const [servicesMap, setServicesMap] = useState({});
   const [usersMap, setUsersMap] = useState({});
+  const [agents, setAgents] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [selectedAgentTransfer, setSelectedAgentTransfer] = useState('');
   const [loading, setLoading] = useState(true);
+  const [viewURL, setViewURL] = useState(null);
   
+  const isAdminOrSuperAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
+
   // Viewing application modal
   const [viewedApp, setViewedApp] = useState(null);
 
@@ -34,17 +41,19 @@ export default function RequestPage() {
     try {
       setLoading(true);
       const userStr = localStorage.getItem('user');
-      const currentUser = userStr ? JSON.parse(userStr) : null;
-      if (!currentUser) return;
+      const currentUserData = userStr ? JSON.parse(userStr) : null;
+      setCurrentUser(currentUserData);
+      if (!currentUserData) return;
 
-      const appsUrl = currentUser.role === 'agent' 
-        ? `/api/applications?agentId=${currentUser.id}` 
+      const appsUrl = currentUserData.role === 'agent' 
+        ? `/api/applications?agentId=${currentUserData.id}` 
         : `/api/applications`;
 
-      const [servicesRes, usersRes, appsRes] = await Promise.all([
+      const [servicesRes, usersRes, appsRes, agentsRes] = await Promise.all([
         fetch('/api/admin/services').then(r => r.json()),
         fetch('/api/users').then(r => r.json()), 
-        fetch(appsUrl).then(r => r.json())
+        fetch(appsUrl).then(r => r.json()),
+        fetch('/api/agents').then(r => r.json())
       ]);
 
       const sMap = {};
@@ -56,6 +65,7 @@ export default function RequestPage() {
       setUsersMap(uMap);
 
       setApplications(appsRes || []);
+      setAgents(agentsRes || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -64,6 +74,12 @@ export default function RequestPage() {
   };
 
   const handleUpdateStatus = async (id, status) => {
+    const hasValidAgent = agents.some(a => a.id === viewedApp?.assignedAgentId);
+    if (isAdminOrSuperAdmin && status === 'approved' && !hasValidAgent) {
+      toast.warning('Please assign a valid agent to this request before approving it.');
+      return;
+    }
+
     if (!window.confirm(`Mark this application as ${status.toUpperCase()}?`)) return;
 
     try {
@@ -78,9 +94,9 @@ export default function RequestPage() {
       // Optimistically update
       setApplications(prev => prev.map(app => app.id === id ? { ...app, status } : app));
       setViewedApp(null);
-      alert('Application status updated successfully.');
+      toast.success('Application status updated successfully.');
     } catch (error) {
-      alert('Error updating application. Please try again.');
+      toast.error('Error updating application. Please try again.');
     }
   };
 
@@ -101,9 +117,30 @@ export default function RequestPage() {
 
       setApplications(prev => prev.map(app => app.id === id ? { ...app, assignedAgentId: currentUser.id } : app));
       setViewedApp(prev => ({ ...prev, assignedAgentId: currentUser.id }));
-      alert('Application claimed successfully! You can now review and approve/reject it.');
+      toast.success('Application claimed successfully! You can now review and approve/reject it.');
     } catch (err) {
-      alert('Error claiming application. It might have been claimed by someone else already.');
+      toast.error('Error claiming application. It might have been claimed by someone else already.');
+    }
+  };
+
+  const handleTransferRequest = async (id) => {
+    if (!selectedAgentTransfer) return toast.warning('Please select an agent to transfer to.');
+    if (!window.confirm('Are you sure you want to transfer this application to the selected agent?')) return;
+    try {
+      const res = await fetch(`/api/applications/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedAgentId: selectedAgentTransfer })
+      });
+
+      if (!res.ok) throw new Error('Failed to transfer');
+
+      setApplications(prev => prev.map(app => app.id === id ? { ...app, assignedAgentId: selectedAgentTransfer } : app));
+      setViewedApp(prev => ({ ...prev, assignedAgentId: selectedAgentTransfer }));
+      toast.success('Application transferred successfully!');
+      setSelectedAgentTransfer('');
+    } catch (err) {
+      toast.error('Error transferring application.');
     }
   };
 
@@ -114,16 +151,16 @@ export default function RequestPage() {
       if (!res.ok) throw new Error('Deletion failed');
       setApplications(prev => prev.filter(a => a.id !== id));
       if (viewedApp?.id === id) setViewedApp(null);
-      alert('Application record deleted successfully.');
+      toast.success('Application record deleted successfully.');
     } catch (err) {
-      alert('Failed to delete application record.');
+      toast.error('Failed to delete application record.');
       console.error(err);
     }
   };
 
   const handleSendNotice = async (e) => {
     e.preventDefault();
-    if (!noticeTitle || !noticeMessage) return alert('Please fill in title and message.');
+    if (!noticeTitle || !noticeMessage) return toast.warning('Please fill in title and message.');
     
     setIsSendingNotice(true);
     try {
@@ -139,12 +176,12 @@ export default function RequestPage() {
         })
       });
       if (!res.ok) throw new Error('Failed to send notice');
-      alert('Notice dispatched to user successfully!');
+      toast.success('Notice dispatched to user successfully!');
       setNoticeModal(null);
       setNoticeTitle('');
       setNoticeMessage('');
     } catch (err) {
-      alert('Error sending notice. Try again.');
+      toast.error('Error sending notice. Try again.');
       console.error(err);
     } finally {
       setIsSendingNotice(false);
@@ -321,6 +358,17 @@ export default function RequestPage() {
                       <p className="text-gray-900">{usersMap[viewedApp.userId]?.phoneNumber || 'Not provided'}</p>
                     </div>
                  </div>
+                 {viewedApp.assignedAgentId && (
+                   <div className="mt-4 pt-4 border-t border-gray-100">
+                     <p className="text-sm font-medium text-gray-500 mb-1">Assigned Agent</p>
+                     <p className="text-gray-900 font-semibold inline-flex items-center px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-100">
+                       {(() => {
+                         const ag = agents.find(a => a.id === viewedApp.assignedAgentId);
+                         return ag ? `${ag.name} (${ag.email})` : 'Unknown Agent';
+                       })()}
+                     </p>
+                   </div>
+                 )}
                </div>
 
                {/* Form Fields Payload Section */}
@@ -342,9 +390,9 @@ export default function RequestPage() {
                                {key.replace(/([A-Z])/g, ' $1').trim()}
                              </p>
                              {isFileObj ? (
-                               <a href={value} target="_blank" rel="noreferrer" className="inline-flex py-2 px-4 bg-blue-50 text-blue-600 rounded mb-2 hover:bg-blue-100 transition-colors text-sm">
+                               <button type="button" onClick={() => setViewURL(value)} className="inline-flex py-2 px-4 bg-blue-50 text-blue-600 rounded mb-2 hover:bg-blue-100 transition-colors text-sm items-center font-medium">
                                  <FaFileAlt className="mr-2" /> View Attachment
-                               </a>
+                               </button>
                              ) : (
                                <p className="text-gray-900 bg-gray-50 px-4 py-2 border border-gray-200 rounded-lg">{value}</p>
                              )}
@@ -354,21 +402,42 @@ export default function RequestPage() {
                     )}
                  </div>
                </div>
-             </div>              <div className="bg-gray-50 border-t border-gray-200 p-6 flex justify-between items-center rounded-b-2xl">
-                 <div className="flex items-center gap-3">
+             </div>              <div className="bg-gray-50 border-t border-gray-200 p-6 flex flex-col xl:flex-row flex-wrap justify-between items-center gap-4 rounded-b-2xl">
+                 <div className="flex items-center gap-3 w-full xl:w-auto">
                    <span className="text-sm font-medium text-gray-600">Status:</span>
                    {getStatusBadge(viewedApp.status)}
                 </div>
                 
-                <div className="flex gap-3 items-center">
-                  <button onClick={() => handleDeleteApplication(viewedApp.id)} className="text-red-600 hover:text-red-700 font-medium px-2 py-1 hover:bg-red-50 rounded transition-colors text-sm">
+                <div className="flex flex-wrap gap-3 items-center w-full xl:w-auto xl:justify-end">
+                  <button onClick={() => handleDeleteApplication(viewedApp.id)} className="text-red-600 hover:text-red-700 font-medium px-2 py-1 hover:bg-red-50 rounded transition-colors text-sm shrink-0">
                     Delete
                   </button>
-                  <button onClick={() => setNoticeModal({ userId: viewedApp.userId, userName: usersMap[viewedApp.userId]?.name })} className="text-blue-600 hover:text-blue-700 font-medium px-2 py-1 hover:bg-blue-50 rounded transition-colors text-sm">
+                  <button onClick={() => setNoticeModal({ userId: viewedApp.userId, userName: usersMap[viewedApp.userId]?.name })} className="text-blue-600 hover:text-blue-700 font-medium px-2 py-1 hover:bg-blue-50 rounded transition-colors text-sm shrink-0">
                     Send Notice
                   </button>
 
-                  {!viewedApp.assignedAgentId && viewedApp.status === 'pending_review' ? (
+                  {isAdminOrSuperAdmin && (
+                    <div className="flex items-center gap-2 mr-2 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
+                       <select 
+                         value={selectedAgentTransfer}
+                         onChange={(e) => setSelectedAgentTransfer(e.target.value)}
+                         className="border border-gray-300 rounded px-2 py-1 text-sm outline-none bg-white text-gray-700 min-w-[150px]"
+                       >
+                         <option value="">Transfer to Agent...</option>
+                         {agents.map(ag => (
+                           <option key={ag.id} value={ag.id}>{ag.name} ({ag.email})</option>
+                         ))}
+                       </select>
+                       <button 
+                         onClick={() => handleTransferRequest(viewedApp.id)}
+                         className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded transition-colors text-sm shadow-sm"
+                       >
+                         Transfer
+                       </button>
+                    </div>
+                  )}
+
+                  {!viewedApp.assignedAgentId && viewedApp.status === 'pending_review' && !isAdminOrSuperAdmin ? (
                      <button 
                        onClick={() => handleClaimRequest(viewedApp.id)}
                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-colors flex items-center shadow-md text-sm ml-2"
@@ -385,7 +454,13 @@ export default function RequestPage() {
                       </button>
                       <button 
                         onClick={() => handleUpdateStatus(viewedApp.id, 'approved')}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center text-sm ml-2"
+                        disabled={isAdminOrSuperAdmin && !agents.some(a => a.id === viewedApp.assignedAgentId)}
+                        className={`px-4 py-2 font-medium rounded-lg transition-colors flex items-center text-sm ml-2 ${
+                          isAdminOrSuperAdmin && !agents.some(a => a.id === viewedApp.assignedAgentId)
+                            ? 'bg-blue-300 text-white/80 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                        title={isAdminOrSuperAdmin && !agents.some(a => a.id === viewedApp.assignedAgentId) ? 'Assign an agent first' : ''}
                       >
                         Approve
                       </button>
@@ -398,6 +473,35 @@ export default function RequestPage() {
                 </div>
              </div>
 
+           </div>
+        </div>
+      )}
+
+      {/* Attachment Viewer Modal */}
+      {viewURL && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[80] p-4 backdrop-blur-sm">
+           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col animate-fade-in-up overflow-hidden">
+              <div className="bg-gray-100 px-6 py-4 flex justify-between items-center border-b border-gray-200">
+                 <h3 className="font-bold text-gray-800 flex items-center gap-2"><FaFileAlt /> Attachment Viewer</h3>
+                 <div className="flex items-center gap-4">
+                   <a 
+                     href={viewURL}
+                     download={viewURL.split('/').pop() || 'attachment'}
+                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors inline-block"
+                     target="_blank" rel="noreferrer"
+                   >
+                     Download
+                   </a>
+                   <button onClick={() => setViewURL(null)} className="text-gray-500 hover:text-gray-800 bg-gray-200 hover:bg-gray-300 rounded-full w-8 h-8 flex items-center justify-center text-xl font-bold transition-colors">✕</button>
+                 </div>
+              </div>
+              <div className="flex-1 bg-gray-200 flex items-center justify-center">
+                 <iframe 
+                   src={viewURL} 
+                   className="w-full h-full border-none bg-white"
+                   title="Attachment Viewer"
+                 ></iframe>
+              </div>
            </div>
         </div>
       )}

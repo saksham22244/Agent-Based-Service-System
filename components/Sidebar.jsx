@@ -24,10 +24,11 @@ export default function Sidebar() {
           ]);
         } else if (user.role === 'agent') {
           setNavItems([
-            { href: '/dashboard', label: 'DASHBOARD' },
+            { href: '/agent', label: 'HOME' },
             { href: '/notice', label: 'NOTICE' },
             { href: '/request', label: 'REQUEST' },
-            { href: '/service', label: 'SERVICES' }
+            { href: '/service', label: 'SERVICES' },
+            { href: '/payment-history', label: 'PAYMENT DETAILS' }
           ]);
         } else {
           // Admin / Superadmin

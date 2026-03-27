@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { toast } from 'react-toastify';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,8 +42,10 @@ export default function LoginPage() {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         
+        toast.success('Login successfully!');
+        
         // Check user role and redirect accordingly
-        if (data.user.role === 'admin') {
+        if (data.user.role === 'admin' || data.user.role === 'superadmin') {
           router.push('/dashboard');  // Admin goes to dashboard
         } else if (data.user.role === 'user') {
           router.push('/user');  // Regular user goes to /user
@@ -88,7 +91,8 @@ export default function LoginPage() {
           // Success login
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
-          if (data.user.role === 'admin') router.push('/dashboard');
+          toast.success('Login successfully!');
+          if (data.user.role === 'admin' || data.user.role === 'superadmin') router.push('/dashboard');
           else if (data.user.role === 'user') router.push('/user');
           else if (data.user.role === 'agent') router.push('/agent');
           else router.push('/user');
@@ -190,6 +194,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input bg-blue-50 text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <input
@@ -199,12 +204,14 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input bg-blue-50 text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <button
                 type="submit"
                 disabled={submitting}
                 className="w-full bg-[#5c6bc0] hover:bg-[#4c5ab0] text-white font-semibold py-3 rounded-md transition disabled:opacity-60"
+                suppressHydrationWarning
               >
                 {submitting ? 'Signing in...' : 'Sign In'}
               </button>

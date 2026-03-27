@@ -11,6 +11,7 @@ export default function AgentSignupPage() {
     email: '',
     phoneNumber: '',
     address: '',
+    paymentDetails: '',
     password: '',
     photo: null,
   });
@@ -136,6 +137,7 @@ export default function AgentSignupPage() {
       formDataToSend.append('email', formData.email);
       formDataToSend.append('phoneNumber', formData.phoneNumber);
       formDataToSend.append('address', formData.address);
+      formDataToSend.append('paymentDetails', formData.paymentDetails);
       formDataToSend.append('password', formData.password);
       formDataToSend.append('photo', formData.photo);
 
@@ -236,6 +238,7 @@ export default function AgentSignupPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="input text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <input
@@ -245,6 +248,7 @@ export default function AgentSignupPage() {
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                 className="input text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <input
@@ -254,6 +258,7 @@ export default function AgentSignupPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="input bg-blue-50 text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
               <input
@@ -263,6 +268,17 @@ export default function AgentSignupPage() {
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 className="input text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
+              />
+
+              <input
+                type="text"
+                placeholder="Payment Details (eSewa info)"
+                required
+                value={formData.paymentDetails}
+                onChange={(e) => setFormData({ ...formData, paymentDetails: e.target.value })}
+                className="input text-gray-900 placeholder-gray-500 bg-gray-50"
+                suppressHydrationWarning
               />
 
               <input
@@ -273,6 +289,7 @@ export default function AgentSignupPage() {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="input bg-blue-50 text-gray-900 placeholder-gray-500"
+                suppressHydrationWarning
               />
 
                <div className="space-y-2">
@@ -285,6 +302,7 @@ export default function AgentSignupPage() {
                   required
                   onChange={handlePhotoChange}
                   className="input text-gray-900 placeholder-gray-500"
+                  suppressHydrationWarning
                 />
                 {photoPreview && (
                   <div className="mt-2 flex justify-start">
@@ -301,6 +319,7 @@ export default function AgentSignupPage() {
                 type="submit"
                 disabled={loading}
                 className="w-full bg-[#5c6bc0] hover:bg-[#4c5ab0] text-white font-semibold py-3 rounded-md transition disabled:opacity-60"
+                suppressHydrationWarning
               >
                 {loading ? 'Signing up...' : 'Sign Up as Agent'}
               </button>

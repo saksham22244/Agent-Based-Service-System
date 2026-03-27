@@ -72,6 +72,7 @@ export async function POST(request) {
     const color = formData.get('color');
     const borderColor = formData.get('borderColor');
     const active = formData.get('active');
+    const price = formData.get('price');
     
     // New dynamic fields and permissions
     const createdBy = formData.get('createdBy') || 'system';
@@ -137,6 +138,7 @@ export async function POST(request) {
       createdBy,
       creatorRole,
       approvalStatus,
+      price: price ? Number(price) : 0,
       active: active !== 'false',
     });
 
