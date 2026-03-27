@@ -9,16 +9,21 @@ export default function NoticePage() {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [recipientType, setRecipientType] = useState('user'); // user, agent
-  const [recipients, setRecipients] = useState('all'); // all, or specific IDs
+  const [recipients, setRecipients] = useState(''); // Empty initially
   const [priority, setPriority] = useState('normal'); // low, normal, high, urgent
   const [notices, setNotices] = useState([]);
   const [users, setUsers] = useState([]);
   const [agents, setAgents] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState({});
 
   // Fetch existing notices and users/agents
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setCurrentUser(JSON.parse(userStr));
+    }
     fetchData();
   }, []);
 
@@ -56,8 +61,23 @@ export default function NoticePage() {
       );
 
       setNotices(sortedNotices);
-      setUsers(usersData.filter(u => u.email !== 'admin@example.com'));
+      
+      const filteredUsers = usersData.filter(u => u.email !== 'admin@example.com');
+      setUsers(filteredUsers);
       setAgents(agentsData);
+
+      // Set safe default recipient if needed
+      const userStr = localStorage.getItem('user');
+      let isAdmin = false;
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        isAdmin = u.role === 'admin' || u.role === 'superadmin';
+      }
+      if (isAdmin) {
+         setRecipients('all');
+      } else if (filteredUsers.length > 0) {
+         setRecipients(filteredUsers[0].id);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
@@ -96,7 +116,6 @@ export default function NoticePage() {
         // Clear form
         setTitle('');
         setMessage('');
-        setRecipients('all');
         setPriority('normal');
         
         // Refresh notices list
@@ -236,8 +255,12 @@ export default function NoticePage() {
                   value={recipients}
                   onChange={(e) => setRecipients(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800"
+                  required
                 >
-                  <option value="all">All {recipientType === 'user' ? 'Users' : 'Agents'}</option>
+                  <option value="" disabled>-- Select Recipient --</option>
+                  {(currentUser?.role === 'admin' || currentUser?.role === 'superadmin') && (
+                    <option value="all">All {recipientType === 'user' ? 'Users' : 'Agents'}</option>
+                  )}
                   {recipientType === 'user' && users.map(user => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.email})

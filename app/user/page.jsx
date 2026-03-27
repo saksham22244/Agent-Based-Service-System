@@ -101,14 +101,14 @@ export default function UserHomePage() {
            <Link href="/user" className="block w-full text-center py-2.5 bg-[#7888c0] text-white rounded-lg font-bold tracking-wide shadow-md">
              HOME
            </Link>
+           <Link href="/user/notices" className="block w-full text-center py-2.5 text-white font-bold tracking-wide hover:bg-[#7888c0]/40 rounded-lg transition-colors">
+             NOTICES
+           </Link>
            <Link href="/user/services" className="block w-full text-center py-2.5 text-white font-bold tracking-wide hover:bg-[#7888c0]/40 rounded-lg transition-colors">
-             SCHEDULE
+             SERVICES
            </Link>
            <Link href="/user/applications" className="block w-full text-center py-2.5 text-white font-bold tracking-wide hover:bg-[#7888c0]/40 rounded-lg transition-colors">
-             HISTORY
-           </Link>
-           <Link href="/user/notices" className="block w-full text-center py-2.5 text-white font-bold tracking-wide hover:bg-[#7888c0]/40 rounded-lg transition-colors">
-             CONTACT US
+             TRACKER
            </Link>
         </div>
 

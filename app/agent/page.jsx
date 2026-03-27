@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Sidebar from '@/components/Sidebar';
 
 export default function AgentPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function AgentPage() {
 
   useEffect(() => {
     // Get agent from localStorage
-    const agentData = localStorage.getItem('agent');
+    const agentData = localStorage.getItem('user');
     if (agentData) {
       const parsedAgent = JSON.parse(agentData);
       setAgent(parsedAgent);
@@ -75,7 +76,7 @@ export default function AgentPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('agent');
+    localStorage.removeItem('user');
     router.push('/login');
   };
 
@@ -95,33 +96,27 @@ export default function AgentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">Agent Based Service System</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-700">Welcome, {agent.name}</span>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Logout
-              </button>
-            </div>
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <Sidebar />
+      
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top Header */}
+        <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 flex-shrink-0"></div>
+        <div className="bg-white px-6 py-4 border-b flex-shrink-0 flex items-center justify-between shadow-sm gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Agent Dashboard</h1>
+            <p className="text-xs text-gray-500 mt-1">Manage your services, applications, and notices.</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
+              Welcome, {agent.name}
+            </span>
           </div>
         </div>
-      </nav>
 
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Agent Dashboard</h2>
-              
-              <div className="space-y-4">
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto p-6 w-full">
+          <div className="max-w-7xl mx-auto space-y-6">
                 <div className="bg-green-50 border border-green-200 rounded-md p-4">
                   <h3 className="text-lg font-semibold text-green-900 mb-2">Welcome!</h3>
                   <p className="text-green-800">
@@ -219,19 +214,17 @@ export default function AgentPage() {
                   )}
                 </div>
 
-                <div className="mt-6">
-                  <h3 className="font-semibold text-gray-900 mb-2">Available Actions</h3>
-                  <div className="space-y-2">
-                    <button className="w-full md:w-auto px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h3 className="font-semibold text-gray-900 mb-4">Available Actions</h3>
+                  <div className="flex flex-wrap gap-3">
+                    <button className="px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm">
                       View Services
                     </button>
-                    <button className="w-full md:w-auto ml-0 md:ml-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+                    <button className="px-5 py-2.5 bg-gray-700 text-white font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-sm">
                       My Requests
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +12,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [googleData, setGoogleData] = useState(null);
+  const [googleRole, setGoogleRole] = useState('user'); // default selection
 
   // Replace with your new image URL
   const heroImageSrc = 'https://drive.google.com/uc?export=view&id=12ejbUJxqDC8cGp3t9ZJriA42Yh1j7E0K';
@@ -62,7 +66,75 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      if (!credentialResponse.credential) {
+         setError('Google login failed, no credential received.');
+         return;
+      }
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: credentialResponse.credential }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.status === 'NEW_USER') {
+          // Open role selector modal
+          setGoogleData(data.googleData);
+          setShowRoleModal(true);
+        } else {
+          // Success login
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          if (data.user.role === 'admin') router.push('/dashboard');
+          else if (data.user.role === 'user') router.push('/user');
+          else if (data.user.role === 'agent') router.push('/agent');
+          else router.push('/user');
+        }
+      } else {
+        if (data.error === 'PENDING_APPROVAL') {
+          router.push('/pending-approval');
+        } else {
+          setError(data.error || 'Google login failed');
+        }
+      }
+    } catch (err) {
+      setError('An error occurred during Google sign in.');
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    if (!googleData) return;
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/auth/google/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...googleData, role: googleRole }),
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.status === 'SUCCESS') {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        router.push('/user'); 
+      } else if (data.error === 'PENDING_APPROVAL' || data.status === 'PENDING_APPROVAL') {
+        router.push('/pending-approval');
+      } else {
+        setError(data.error || 'Failed to finish Google signup');
+        setShowRoleModal(false);
+      }
+    } catch (err) {
+      setError('An error occurred.');
+    } finally {
+       setSubmitting(false);
+    }
+  };
+
   return (
+    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '282906055180-u6ktve2ganpfjip6l9mjh4ftc2r09mk9.apps.googleusercontent.com'}>
     <div className="min-h-screen w-full bg-[#f0f4f8] flex items-center justify-center px-0">
       <div className="w-full h-screen bg-white overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 h-full">
@@ -138,6 +210,20 @@ export default function LoginPage() {
               </button>
             </form>
 
+            <div className="my-6 flex items-center justify-center">
+              <div className="w-full h-px bg-gray-300"></div>
+              <span className="px-3 text-sm text-gray-500 font-medium">OR</span>
+              <div className="w-full h-px bg-gray-300"></div>
+            </div>
+
+            <div className="flex justify-center flex-col items-center gap-2">
+               <GoogleLogin 
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError('Google sign-in failed. Please try again.')}
+               />
+               <p className="text-xs text-gray-500 mt-2">Sign in works for both Users and Agents</p>
+            </div>
+
             {/* LINKS */}
             <div className="mt-6 text-sm text-center text-gray-600 space-y-2">
               <p>
@@ -156,6 +242,48 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* Role Selection Modal for New Google Sign In */}
+      {showRoleModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center">
+             <h2 className="text-xl font-bold text-gray-900 mb-2">Complete your Profile</h2>
+             <p className="text-sm text-gray-600 mb-6">
+                Welcome {googleData?.name?.split(' ')[0]}! Are you signing up as a regular User or an Agent?
+             </p>
+             <div className="flex flex-col gap-3 mb-6">
+               <button 
+                  onClick={() => setGoogleRole('user')}
+                  className={`py-3 rounded-lg border-2 transition-all ${googleRole === 'user' ? 'border-[#5c6bc0] bg-blue-50 text-[#5c6bc0]' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+               >
+                 <strong className="block text-lg">User</strong>
+                 <span className="text-xs">Access everyday services</span>
+               </button>
+               <button 
+                  onClick={() => setGoogleRole('agent')}
+                  className={`py-3 rounded-lg border-2 transition-all ${googleRole === 'agent' ? 'border-[#5c6bc0] bg-blue-50 text-[#5c6bc0]' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+               >
+                 <strong className="block text-lg">Agent</strong>
+                 <span className="text-xs">Provide services (Requires Approval)</span>
+               </button>
+             </div>
+             
+             <button 
+                onClick={handleGoogleSignup}
+                disabled={submitting}
+                className="w-full bg-[#5c6bc0] text-white font-semibold py-3 rounded-lg hover:bg-[#4c5ab0] transition-colors disabled:opacity-50"
+             >
+                {submitting ? 'Setting up...' : 'Continue'}
+             </button>
+             <button 
+                onClick={() => setShowRoleModal(false)}
+                className="mt-3 text-sm text-gray-500 hover:underline"
+             >
+                Cancel
+             </button>
+          </div>
+        </div>
+      )}
+
       {/* Reusable input styles */}
       <style jsx>{`
         .input {
@@ -172,5 +300,6 @@ export default function LoginPage() {
         }
       `}</style>
     </div>
+    </GoogleOAuthProvider>
   );
 }

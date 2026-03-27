@@ -84,6 +84,29 @@ export default function RequestPage() {
     }
   };
 
+  const handleClaimRequest = async (id) => {
+    if (!window.confirm('Are you sure you want to claim this application? You will be responsible for reviewing it.')) return;
+    try {
+      const userStr = localStorage.getItem('user');
+      const currentUser = userStr ? JSON.parse(userStr) : null;
+      if (!currentUser) return;
+
+      const res = await fetch(`/api/applications/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedAgentId: currentUser.id })
+      });
+
+      if (!res.ok) throw new Error('Failed to claim');
+
+      setApplications(prev => prev.map(app => app.id === id ? { ...app, assignedAgentId: currentUser.id } : app));
+      setViewedApp(prev => ({ ...prev, assignedAgentId: currentUser.id }));
+      alert('Application claimed successfully! You can now review and approve/reject it.');
+    } catch (err) {
+      alert('Error claiming application. It might have been claimed by someone else already.');
+    }
+  };
+
   const handleDeleteApplication = async (id) => {
     if (!window.confirm('Are you sure you want to completely delete this application record?')) return;
     try {
@@ -345,7 +368,14 @@ export default function RequestPage() {
                     Send Notice
                   </button>
 
-                  {viewedApp.status === 'pending_review' ? (
+                  {!viewedApp.assignedAgentId && viewedApp.status === 'pending_review' ? (
+                     <button 
+                       onClick={() => handleClaimRequest(viewedApp.id)}
+                       className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-colors flex items-center shadow-md text-sm ml-2"
+                     >
+                       Claim Request to Review
+                     </button>
+                  ) : viewedApp.status === 'pending_review' ? (
                     <>
                       <button 
                         onClick={() => handleUpdateStatus(viewedApp.id, 'rejected')}

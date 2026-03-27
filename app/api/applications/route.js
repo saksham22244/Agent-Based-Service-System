@@ -48,8 +48,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 });
     }
 
-    // Determine assignee: if the service was created by an agent, it defaults to them. Otherwise, system admin.
-    const assignedAgentId = service.creatorRole === 'agent' ? service.createdBy : 'admin';
+    // Set assignee to null so it goes to ALL agents and one can claim it.
+    const assignedAgentId = null;
 
     let parsedFormData = {};
     if (formDataString) {
