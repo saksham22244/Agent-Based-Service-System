@@ -274,6 +274,59 @@ export default function ServicePage() {
             <p className="text-gray-600 text-sm md:text-base">Manage and organize all available services</p>
           </div>
 
+          {/* Stats Section */}
+          <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-gray-600">Total Services</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">{services.length}</p>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-50 flex items-center justify-center">
+                  <FaCertificate className="text-blue-500 text-base md:text-xl" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-gray-600">Active Services</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">
+                    {services.filter(s => s.active !== false).length}
+                  </p>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-50 flex items-center justify-center">
+                  <FaUserCheck className="text-green-500 text-base md:text-xl" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-gray-600">Categories</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">6</p>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-purple-50 flex items-center justify-center">
+                  <FaPen className="text-purple-500 text-base md:text-xl" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-gray-600">Last Updated</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">Today</p>
+                </div>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-yellow-50 flex items-center justify-center">
+                  <FaBell className="text-yellow-500 text-base md:text-xl" />
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Error Message */}
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
@@ -408,59 +461,6 @@ export default function ServicePage() {
                 <span className="px-2 py-1 md:px-3 md:py-1 bg-gray-100 text-xs font-semibold text-gray-600 rounded-full group-hover:bg-blue-100 group-hover:text-blue-600">
                   CLICK TO ADD
                 </span>
-              </div>
-            </div>
-          </div>
-
-              {/* Stats Section */}
-              <div className="mt-8 md:mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm text-gray-600">Total Services</p>
-                  <p className="text-xl md:text-2xl font-bold text-gray-900">{services.length}</p>
-                </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-50 flex items-center justify-center">
-                  <FaCertificate className="text-blue-500 text-base md:text-xl" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm text-gray-600">Active Services</p>
-                  <p className="text-xl md:text-2xl font-bold text-gray-900">
-                    {services.filter(s => s.active !== false).length}
-                  </p>
-                </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-50 flex items-center justify-center">
-                  <FaUserCheck className="text-green-500 text-base md:text-xl" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm text-gray-600">Categories</p>
-                  <p className="text-xl md:text-2xl font-bold text-gray-900">6</p>
-                </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-purple-50 flex items-center justify-center">
-                  <FaPen className="text-purple-500 text-base md:text-xl" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm text-gray-600">Last Updated</p>
-                  <p className="text-xl md:text-2xl font-bold text-gray-900">Today</p>
-                </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-yellow-50 flex items-center justify-center">
-                  <FaBell className="text-yellow-500 text-base md:text-xl" />
-                </div>
               </div>
             </div>
           </div>
