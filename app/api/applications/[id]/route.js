@@ -22,9 +22,10 @@ export async function PATCH(request, { params }) {
     const { id } = await params;
     const updates = await request.json();
 
-    if (updates.status === 'approved') {
+    // Handle payment release when agent confirms work completion
+    if (updates.status === 'work_completed') {
       const currentApp = await applicationDb.getById(id);
-      if (currentApp && currentApp.status !== 'approved' && currentApp.assignedAgentId) {
+      if (currentApp && currentApp.status !== 'work_completed' && currentApp.assignedAgentId) {
         try {
           const { serviceDb, agentDb } = await import('@/lib/db');
           const service = await serviceDb.getById(currentApp.serviceId);
@@ -36,6 +37,18 @@ export async function PATCH(request, { params }) {
             if (agent) {
                const newTotalEarnings = (agent.totalEarnings || 0) + agentShare;
                await agentDb.update(agent.id, { totalEarnings: newTotalEarnings });
+               
+               // Add payment record to transaction
+               const { transactionDb } = await import('@/lib/db');
+               await transactionDb.create({
+                 product_id: `work_completion_${id}`,
+                 amount: agentShare,
+                 userId: currentApp.assignedAgentId,
+                 status: 'COMPLETE',
+                 type: 'agent_payment',
+                 applicationId: id,
+                 createdAt: new Date()
+               });
             }
           }
         } catch (e) {

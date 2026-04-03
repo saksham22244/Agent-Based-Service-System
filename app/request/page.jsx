@@ -194,18 +194,21 @@ export default function RequestPage() {
       case 'rejected': return <span className="bg-red-100 text-red-800 border border-red-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Rejected</span>;
       case 'pending_payment': return <span className="bg-yellow-100 text-yellow-800 border border-yellow-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Pending Payment</span>;
       case 'pending_review': return <span className="bg-blue-100 text-blue-800 border border-blue-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide animate-pulse shadow-sm">Needs Validation</span>;
+      case 'work_completed': return <span className="bg-indigo-100 text-indigo-800 border border-indigo-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Completed</span>;
       default: return <span className="bg-gray-100 text-gray-800 border px-3 py-1 rounded-full text-xs">{status}</span>;
     }
   };
 
   const filteredApps = applications.filter(app => {
+    if (app.status === 'work_completed') return false;
+    
     const svc = servicesMap[app.serviceId]?.name || '';
     const usr = usersMap[app.userId];
     const uName = usr?.name || '';
     const uEmail = usr?.email || '';
     const tkId = app.id.slice(-8);
     const q = searchQuery.toLowerCase();
-    return svc.toLowerCase().includes(q) || uName.toLowerCase().includes(q) || uEmail.toLowerCase().includes(q) || tkId.toLowerCase().includes(q) || !searchQuery;
+    return (svc.toLowerCase().includes(q) || uName.toLowerCase().includes(q) || uEmail.toLowerCase().includes(q) || tkId.toLowerCase().includes(q)) || !searchQuery;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredApps.length / itemsPerPage));

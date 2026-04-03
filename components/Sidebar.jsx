@@ -11,6 +11,8 @@ export default function Sidebar() {
   const [navItems, setNavItems] = useState([]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
@@ -20,22 +22,31 @@ export default function Sidebar() {
             { href: '/user', label: 'HOME' },
             { href: '/user/notices', label: 'NOTICES' },
             { href: '/user/services', label: 'SERVICES' },
-            { href: '/user/applications', label: 'TRACKER' }
+            { href: '/user/applications', label: 'TRACKER' },
+            { href: '/user/history', label: 'HISTORY' },
+            { href: '/send-notice', label: 'CONTACT ADMIN' }
           ]);
         } else if (user.role === 'agent') {
           setNavItems([
             { href: '/agent', label: 'HOME' },
-            { href: '/notice', label: 'NOTICE' },
-            { href: '/request', label: 'REQUEST' },
+            { href: '/agent/work', label: 'WORK DASHBOARD' },
+            { href: '/agent/notices', label: 'NOTICES' },
+            { href: '/request', label: 'REQUESTS' },
+            { href: '/history', label: 'HISTORY' },
             { href: '/service', label: 'SERVICES' },
-            { href: '/payment-history', label: 'PAYMENT DETAILS' }
+            { href: '/payment-history', label: 'PAYMENT DETAILS' },
+            { href: '/send-notice', label: 'CONTACT ADMIN' }
           ]);
         } else {
           // Admin / Superadmin
           setNavItems([
             { href: '/dashboard', label: 'DASHBOARD' },
-            { href: '/notice', label: 'NOTICE' },
-            { href: '/request', label: 'REQUEST' },
+            { href: '/admin/agent-management', label: 'AGENT MANAGEMENT' },
+            { href: '/admin/inbox', label: 'INBOX' },
+            { href: '/admin/agent-payments', label: 'QUICK PAYMENTS' },
+            { href: '/notice', label: 'SEND NOTICES' },
+            { href: '/request', label: 'REQUESTS' },
+            { href: '/history', label: 'HISTORY' },
             { href: '/service', label: 'SERVICES' }
           ]);
         }
@@ -46,8 +57,10 @@ export default function Sidebar() {
   }, []);
 
   const handleLogout = () => {
-    if (typeof window !== 'undefined') localStorage.removeItem('user');
-    router.push('/login');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user');
+      router.push('/login');
+    }
   };
 
   return (
@@ -79,7 +92,7 @@ export default function Sidebar() {
                 href={item.href}
                 className={`block px-5 py-3.5 rounded-xl font-bold tracking-wider transition-all duration-200 ${isActive
                     ? 'bg-[#7C7390] text-white shadow-md transform scale-[1.02]'
-                    : 'text-gray-300 hover:bg-[#6B6378] hover:text-white hover:scale-[1.02]'
+                    : 'text-white/80 hover:bg-[#6B6378] hover:text-white hover:scale-[1.02]'
                   }`}
               >
                 {item.label}
@@ -93,7 +106,7 @@ export default function Sidebar() {
       <div className="p-5 border-t border-white/5">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-[#48425C] hover:bg-red-500 hover:text-white text-gray-300 rounded-xl font-black tracking-widest border border-transparent hover:border-red-400 transition-all shadow-md active:scale-95"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-[#48425C] hover:bg-red-500 hover:text-white text-white/80 rounded-xl font-black tracking-widest border border-transparent hover:border-red-400 transition-all shadow-md active:scale-95"
         >
           <FaSignOutAlt />
           LOGOUT

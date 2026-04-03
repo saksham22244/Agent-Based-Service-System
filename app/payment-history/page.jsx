@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
+import TopHeader from '@/components/TopHeader';
 import { FaWallet, FaRegMoneyBillAlt, FaChartLine, FaCalendarCheck } from 'react-icons/fa';
 
 export default function PaymentHistoryPage() {
@@ -11,7 +12,7 @@ export default function PaymentHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [approvedApplications, setApprovedApplications] = useState([]);
   const [servicesMap, setServicesMap] = useState({});
-  const [agentData, setAgentData] = useState({});
+  const [agentData, setAgentData] = useState({ payments: [] });
 
   useEffect(() => {
     fetchHistory();
@@ -29,11 +30,12 @@ export default function PaymentHistoryPage() {
       const userData = JSON.parse(userStr);
       setCurrentUser(userData);
 
-      // Fetch Applications, Services, and Agent Details concurrently
-      const [appsRes, servicesRes, agentsRes] = await Promise.all([
+      // Fetch Applications, Services, Agent Details, and Agent Payments concurrently
+      const [appsRes, servicesRes, agentsRes, paymentsRes] = await Promise.all([
         fetch(`/api/applications?agentId=${userData.id}`).then(r => r.json()),
         fetch('/api/admin/services').then(r => r.json()),
-        fetch('/api/agents').then(r => r.json())
+        fetch('/api/agents').then(r => r.json()),
+        fetch(`/api/agent/${userData.id}/payments`).then(r => r.json())
       ]);
 
       // Service lookup map for getting price & name
@@ -43,7 +45,10 @@ export default function PaymentHistoryPage() {
 
       // Identify the agent specifically
       const agentObj = (agentsRes || []).find(a => a.id === userData.id) || {};
-      setAgentData(agentObj);
+      
+      // Store payments inside agentData
+      const paymentsList = Array.isArray(paymentsRes) ? paymentsRes : [];
+      setAgentData({ ...agentObj, payments: paymentsList });
 
       // Only count "approved" (completed jobs where payment is finalized)
       const completedApps = (appsRes || []).filter(app => app.status === 'approved');
@@ -69,6 +74,14 @@ export default function PaymentHistoryPage() {
   };
 
   const totalEarnings = calculateTotalEarnings();
+  
+  // Calculate totalPaid dynamically similar to agent work page
+  const payments = Array.isArray(agentData?.payments) ? agentData.payments : [];
+  const totalPaid = payments
+    .filter(p => p.type === 'direct_payment' && p.status !== 'FAILED')
+    .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+    
+  const pendingDebt = Math.max(0, totalEarnings - totalPaid);
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans">
@@ -81,6 +94,8 @@ export default function PaymentHistoryPage() {
             <h1 className="text-2xl font-bold text-gray-900 tracking-wide">Earnings Dashboard</h1>
             <p className="text-sm text-gray-500 mt-1">Track your completed services and financial history.</p>
           </div>
+          {/* Top Right Profile Actions */}
+          <TopHeader user={currentUser} setUser={setCurrentUser} />
         </div>
 
         {/* Content Body */}
@@ -107,8 +122,22 @@ export default function PaymentHistoryPage() {
                    <p className="text-xs text-green-100 font-medium">Accumulated from 80% commission share</p>
                  </div>
 
+                 {/* Pending Debt Card */}
+                 <div className="bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-6 shadow-lg shadow-red-500/20 text-white flex flex-col justify-between transform transition hover:-translate-y-1">
+                   <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-red-100 font-semibold text-sm uppercase tracking-wider mb-1">Pending Payout</p>
+                        <h3 className="text-4xl font-black">Rs. {pendingDebt.toFixed(2)}</h3>
+                      </div>
+                      <div className="bg-white/20 p-3 rounded-full border border-white/30 backdrop-blur-sm">
+                        <FaRegMoneyBillAlt size={24} />
+                      </div>
+                   </div>
+                   <p className="text-xs text-red-100 font-medium">Amount owed to you by Admin</p>
+                 </div>
+
                  {/* eSewa Details Card */}
-                 <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 shadow-lg shadow-blue-600/20 text-white flex flex-col justify-between transform transition hover:-translate-y-1 md:col-span-2">
+                 <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 shadow-lg shadow-blue-600/20 text-white flex flex-col justify-between transform transition hover:-translate-y-1">
                    <div className="flex justify-between items-start">
                       <div>
                         <p className="text-blue-100 font-semibold text-sm uppercase tracking-wider mb-2">Active Payout Account</p>

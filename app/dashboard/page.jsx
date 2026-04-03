@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const [users, setUsers] = useState([]);
   const [agents, setAgents] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15; // Reduced strictly to exactly fit viewport perfectly without scrolling
+  const itemsPerPage = 10; // Reduced strictly to perfectly fit viewport with more padding
 
   useEffect(() => {
     fetchData();
@@ -436,17 +436,26 @@ export default function DashboardPage() {
                     ) : (
                       paginatedItems.map((item) => (
                         <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-2 align-middle">
-                            <div className="text-sm font-medium text-gray-900 truncate" title={item.name}>
-                              {item.name}
+                          <td className="px-4 py-4 align-middle">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 flex-shrink-0 shadow-sm">
+                                {item.profilePicture || item.photoUrl ? (
+                                  <img src={item.profilePicture || item.photoUrl} alt={item.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-xs font-bold text-slate-400 capitalize">{item.name?.charAt(0) || 'U'}</span>
+                                )}
+                              </div>
+                              <div className="text-sm font-medium text-gray-900 truncate" title={item.name}>
+                                {item.name}
+                              </div>
                             </div>
                           </td>
-                          <td className="px-4 py-2 align-middle">
+                          <td className="px-4 py-4 align-middle">
                             <div className="text-sm text-gray-600 truncate" title={item.phoneNumber}>
                               {item.phoneNumber}
                             </div>
                           </td>
-                          <td className="px-4 py-2 align-middle">
+                          <td className="px-4 py-4 align-middle">
                             <div
                               className="text-sm text-gray-600 truncate cursor-help"
                               title={item.email}
@@ -454,7 +463,7 @@ export default function DashboardPage() {
                               {item.email}
                             </div>
                           </td>
-                          <td className="px-4 py-2 align-middle">
+                          <td className="px-4 py-4 align-middle">
                             <div className="flex flex-col gap-1">
                               <span className="inline-flex items-center px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium w-fit">
                                 {item.type === 'user' ? 'Users' : 'Agent'}
@@ -469,7 +478,7 @@ export default function DashboardPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-2 align-middle">
+                          <td className="px-4 py-4 align-middle">
                             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={(e) => {
@@ -623,23 +632,22 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {/* Image Display - Prominent for Agents */}
-            {viewModal.type === 'agent' && 'photoUrl' in viewModal && viewModal.photoUrl ? (
-              <div className="mb-6 flex justify-center">
-                <div className="w-full max-w-md h-96 relative rounded-xl overflow-hidden border-2 border-gray-200 shadow-lg">
-                  <Image
-                    src={viewModal.photoUrl}
+            {/* Image Display - Unified for Users and Agents */}
+            {(viewModal.profilePicture || (viewModal.type === 'agent' && 'photoUrl' in viewModal && viewModal.photoUrl)) ? (
+              <div className="mb-8 flex justify-center pt-2">
+                <div className={`relative overflow-hidden border-4 border-white shadow-xl ${viewModal.type === 'user' ? 'w-44 h-44 rounded-full' : 'w-full max-w-sm h-80 rounded-2xl'}`}>
+                  <img
+                    src={viewModal.profilePicture || viewModal.photoUrl}
                     alt={viewModal.name}
-                    fill
-                    className="object-cover"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               </div>
             ) : viewModal.type === 'user' ? (
-              <div className="mb-6 flex justify-center">
-                <div className="w-48 h-48 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300 shadow-md">
+              <div className="mb-8 flex justify-center pt-2">
+                <div className="w-44 h-44 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center border-4 border-white shadow-lg text-slate-300">
                   <svg
-                    className="w-24 h-24 text-gray-400"
+                    className="w-20 h-20"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"

@@ -17,6 +17,8 @@ export default function NoticePage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Fetch existing notices and users/agents
   useEffect(() => {
@@ -183,6 +185,11 @@ export default function NoticePage() {
     }
   };
 
+  const totalPages = Math.max(1, Math.ceil(notices.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const paginatedNotices = notices.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -315,7 +322,7 @@ export default function NoticePage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {notices.map((notice) => (
+              {paginatedNotices.map((notice) => (
                 <div
                   key={notice.id}
                   className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200 hover:border-indigo-300"
@@ -377,6 +384,30 @@ export default function NoticePage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {notices.length > 0 && totalPages > 1 && (
+            <div className="flex items-center justify-end gap-1.5 mt-8 text-sm text-gray-700 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+              <span className="mr-0.5 font-medium">Show</span>
+              {Array.from({ length: totalPages }).map((_, index) => {
+                const pageNumber = index + 1;
+                return (
+                  <button
+                    key={pageNumber}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNumber)}
+                    className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                      safeCurrentPage === pageNumber
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200'
+                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNumber}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

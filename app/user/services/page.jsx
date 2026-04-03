@@ -10,6 +10,7 @@ export default function UserServicesPage() {
   const router = useRouter();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Application Form Modal State
   const [selectedService, setSelectedService] = useState(null);
@@ -32,6 +33,13 @@ export default function UserServicesPage() {
         setServices(validServices);
         setLoading(false);
       });
+
+    // Check for search query in URL
+    const params = new URLSearchParams(window.location.search);
+    const search = params.get('search');
+    if (search) {
+      setSearchQuery(search);
+    }
   }, [router]);
 
   const handleApplyClick = (service) => {
@@ -108,6 +116,29 @@ export default function UserServicesPage() {
       <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full">
         <div className="h-1 bg-gradient-to-r from-blue-500 to-[#5C5470] flex-shrink-0"></div>
         <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+          {/* Internal Search Bar */}
+          <div className="mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+             <div className="flex-1 relative">
+                <input 
+                  type="text" 
+                  placeholder="Filter services by name or description..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+             </div>
+             {searchQuery && (
+               <button 
+                 onClick={() => setSearchQuery('')}
+                 className="text-gray-400 hover:text-gray-600 text-sm font-medium"
+               >
+                 Clear
+               </button>
+             )}
+          </div>
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -125,7 +156,12 @@ export default function UserServicesPage() {
                   <p className="text-gray-500">No active services are available at the moment. Please check back later.</p>
                 </div>
               ) : (
-                services.map(service => (
+                services
+                  .filter(s => 
+                    s.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    s.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map(service => (
                   <div key={service.id} className="bg-white border hover:shadow-xl transition-shadow border-gray-200 rounded-xl overflow-hidden flex flex-col">
                     <div className={`${service.color} ${service.borderColor} p-6 flex flex-col items-center justify-center text-center relative border-b-2`}>
                       {service.imageUrl ? (
@@ -153,6 +189,16 @@ export default function UserServicesPage() {
                 ))
               )}
             </div>
+            
+            {services.length > 0 && services.filter(s => 
+              s.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+              s.description?.toLowerCase().includes(searchQuery.toLowerCase())
+            ).length === 0 && (
+              <div className="bg-white p-12 rounded-xl border border-gray-200 text-center mt-6">
+                <p className="text-gray-500">No services match your search: <span className="font-bold">"{searchQuery}"</span></p>
+                <button onClick={() => setSearchQuery('')} className="mt-4 text-blue-600 font-bold hover:underline">Show all services</button>
+              </div>
+            )}
           </div>
         )}
       </div>

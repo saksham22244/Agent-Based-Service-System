@@ -19,7 +19,7 @@ export default function LoginPage() {
 
   // Replace with your new image URL
   const heroImageSrc = 'https://drive.google.com/uc?export=view&id=12ejbUJxqDC8cGp3t9ZJriA42Yh1j7E0K';
-  
+
   // Keep the logo if you want, or replace it too
   const logoSrc = 'https://drive.google.com/uc?export=view&id=1Dq2CNVPgjj7-5si_GoT7xkEpXYwT57gy';
 
@@ -41,9 +41,9 @@ export default function LoginPage() {
         // Store token and user data
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        
+
         toast.success('Login successfully!');
-        
+
         // Check user role and redirect accordingly
         if (data.user.role === 'admin' || data.user.role === 'superadmin') {
           router.push('/dashboard');  // Admin goes to dashboard
@@ -72,8 +72,8 @@ export default function LoginPage() {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       if (!credentialResponse.credential) {
-         setError('Google login failed, no credential received.');
-         return;
+        setError('Google login failed, no credential received.');
+        return;
       }
       const response = await fetch('/api/auth/google', {
         method: 'POST',
@@ -119,11 +119,11 @@ export default function LoginPage() {
         body: JSON.stringify({ ...googleData, role: googleRole }),
       });
       const data = await response.json();
-      
+
       if (response.ok && data.status === 'SUCCESS') {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        router.push('/user'); 
+        router.push('/user');
       } else if (data.error === 'PENDING_APPROVAL' || data.status === 'PENDING_APPROVAL') {
         router.push('/pending-approval');
       } else {
@@ -133,180 +133,171 @@ export default function LoginPage() {
     } catch (err) {
       setError('An error occurred.');
     } finally {
-       setSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   return (
     <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '282906055180-u6ktve2ganpfjip6l9mjh4ftc2r09mk9.apps.googleusercontent.com'}>
-    <div className="min-h-screen w-full bg-[#f0f4f8] flex items-center justify-center px-0">
-      <div className="w-full h-screen bg-white overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2 h-full">
+      <div className="min-h-screen w-full flex items-center justify-center bg-white font-sans">
+        <div className="w-full h-screen bg-white overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 h-full">
 
-          {/* LEFT SIDE - Image fills entire box */}
-          <div className="relative bg-[#c7d3e3]">
-            <Image
-              src={heroImageSrc}
-              alt="Login Illustration"
-              fill
-              className="object-cover"  // Changed from object-contain to object-cover
-              priority
-              sizes="50vw"
-            />
-            {/* Optional overlay if image is too bright */}
-            <div className="absolute inset-0 bg-black/5"></div>
-          </div>
-
-          {/* RIGHT SIDE - Everything remains exactly the same */}
-          <div className="flex flex-col justify-center px-8 md:px-12 py-10 bg-[#f9fafb]">
-
-            {/* Logo - You can also update this if needed */}
-            <div className="flex justify-center mb-6">
-              <div className="h-48 w-48 rounded-full border border-gray-300 flex items-center justify-center bg-white">
-                <Image
-                  src={logoSrc}
-                  alt="Logo"
-                  width={140}
-                  height={140}
-                  className="object-contain"
-                />
-              </div>
+            {/* LEFT SIDE - Image fills entire box */}
+            <div className="relative bg-[#c7d3e3]">
+              <Image
+                src={heroImageSrc}
+                alt="Login Illustration"
+                fill
+                className="object-cover"  // Changed from object-contain to object-cover
+                priority
+                sizes="50vw"
+              />
+              {/* Optional overlay if image is too bright */}
+              <div className="absolute inset-0 bg-black/5"></div>
             </div>
 
-            {/* Heading */}
-            <h2 className="text-center text-2xl font-bold text-gray-800 mb-6">
-              Sign in to your account
-            </h2>
+            {/* RIGHT SIDE - Everything remains exactly the same */}
+            <div className="flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12 bg-white">
 
-            {/* ERROR */}
-            {error && (
-              <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-2 rounded">
-                {error}
+              {/* Logo - You can also update this if needed */}
+              <div className="flex justify-center mb-6">
+                <div className="h-40 w-40 rounded-full border border-slate-100 flex items-center justify-center bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-4 ring-slate-50 transition-all duration-300">
+                  <Image
+                    src={logoSrc}
+                    alt="Logo"
+                    width={120}
+                    height={120}
+                    className="object-contain"
+                  />
+                </div>
               </div>
-            )}
 
-            {/* FORM */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="email"
-                placeholder="Email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input bg-blue-50 text-gray-900 placeholder-gray-500"
-                suppressHydrationWarning
-              />
+              {/* Heading */}
+              <h2 className="text-center text-3xl font-extrabold text-slate-800 tracking-tight mb-8">
+                Sign in to your account
+              </h2>
 
-              <input
-                type="password"
-                placeholder="Password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input bg-blue-50 text-gray-900 placeholder-gray-500"
-                suppressHydrationWarning
-              />
+              {/* ERROR */}
+              {error && (
+                <div className="mb-6 text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-lg shadow-sm">
+                  {error}
+                </div>
+              )}
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-[#5c6bc0] hover:bg-[#4c5ab0] text-white font-semibold py-3 rounded-md transition disabled:opacity-60"
-                suppressHydrationWarning
-              >
-                {submitting ? 'Signing in...' : 'Sign In'}
-              </button>
-            </form>
+              {/* FORM */}
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-1">
+                  <input
+                    type="email"
+                    placeholder="Email address"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
+                    suppressHydrationWarning
+                  />
+                </div>
 
-            <div className="my-6 flex items-center justify-center">
-              <div className="w-full h-px bg-gray-300"></div>
-              <span className="px-3 text-sm text-gray-500 font-medium">OR</span>
-              <div className="w-full h-px bg-gray-300"></div>
-            </div>
+                <div className="space-y-1">
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
+                    suppressHydrationWarning
+                  />
+                </div>
 
-            <div className="flex justify-center flex-col items-center gap-2">
-               <GoogleLogin 
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-medium text-[15px] py-3.5 rounded-xl shadow-[0_4px_14px_0_rgba(99,102,241,0.39)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.23)] transition-all duration-200 disabled:opacity-60 disabled:shadow-none"
+                  suppressHydrationWarning
+                >
+                  {submitting ? 'Signing in...' : 'Sign In'}
+                </button>
+              </form>
+
+              <div className="my-8 flex items-center justify-center">
+                <div className="flex-grow h-px bg-slate-200"></div>
+                <span className="px-4 text-xs font-semibold text-slate-400 tracking-wider uppercase">Or continue with</span>
+                <div className="flex-grow h-px bg-slate-200"></div>
+              </div>
+
+              <div className="flex justify-center flex-col items-center gap-2">
+                <GoogleLogin
                   onSuccess={handleGoogleSuccess}
                   onError={() => setError('Google sign-in failed. Please try again.')}
-               />
-               <p className="text-xs text-gray-500 mt-2">Sign in works for both Users and Agents</p>
-            </div>
+                  shape="rectangular"
+                  size="large"
+                  theme="outline"
+                />
+                <p className="text-xs text-slate-400 mt-3 font-medium">Sign in works for both Users and Agents</p>
+              </div>
 
-            {/* LINKS */}
-            <div className="mt-6 text-sm text-center text-gray-600 space-y-2">
-              <p>
-                Don&apos;t have an account?{' '}
-                <Link href="/signup" className="text-blue-600 font-semibold hover:underline">
-                  Sign up as user
-                </Link>
-              </p>
-              <p>
-                <Link href="/agent-signup" className="text-blue-600 font-semibold hover:underline">
-                  Sign up as agent
-                </Link>
-              </p>
+              {/* LINKS */}
+              <div className="mt-8 text-sm text-center text-slate-500 space-y-3">
+                <p>
+                  Don&apos;t have an account?{' '}
+                  <Link href="/signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
+                    Sign up as user
+                  </Link>
+                </p>
+                <p>
+                  <Link href="/agent-signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
+                    Sign up as agent
+                  </Link>
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Role Selection Modal for New Google Sign In */}
-      {showRoleModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center">
-             <h2 className="text-xl font-bold text-gray-900 mb-2">Complete your Profile</h2>
-             <p className="text-sm text-gray-600 mb-6">
+        {/* Role Selection Modal for New Google Sign In */}
+        {showRoleModal && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
+            <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-8 text-center border border-slate-100">
+              <h2 className="text-2xl font-bold text-slate-800 mb-2 tracking-tight">Complete your Profile</h2>
+              <p className="text-sm text-slate-500 mb-8 font-medium">
                 Welcome {googleData?.name?.split(' ')[0]}! Are you signing up as a regular User or an Agent?
-             </p>
-             <div className="flex flex-col gap-3 mb-6">
-               <button 
+              </p>
+              <div className="flex flex-col gap-4 mb-8">
+                <button
                   onClick={() => setGoogleRole('user')}
-                  className={`py-3 rounded-lg border-2 transition-all ${googleRole === 'user' ? 'border-[#5c6bc0] bg-blue-50 text-[#5c6bc0]' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
-               >
-                 <strong className="block text-lg">User</strong>
-                 <span className="text-xs">Access everyday services</span>
-               </button>
-               <button 
+                  className={`py-4 rounded-xl border-2 transition-all duration-200 ${googleRole === 'user' ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700 shadow-sm' : 'border-slate-100 text-slate-600 hover:border-slate-200 hover:bg-slate-50'}`}
+                >
+                  <strong className="block text-lg font-bold mb-1">User</strong>
+                  <span className="text-xs font-medium opacity-80">Access everyday services</span>
+                </button>
+                <button
                   onClick={() => setGoogleRole('agent')}
-                  className={`py-3 rounded-lg border-2 transition-all ${googleRole === 'agent' ? 'border-[#5c6bc0] bg-blue-50 text-[#5c6bc0]' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
-               >
-                 <strong className="block text-lg">Agent</strong>
-                 <span className="text-xs">Provide services (Requires Approval)</span>
-               </button>
-             </div>
-             
-             <button 
+                  className={`py-4 rounded-xl border-2 transition-all duration-200 ${googleRole === 'agent' ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700 shadow-sm' : 'border-slate-100 text-slate-600 hover:border-slate-200 hover:bg-slate-50'}`}
+                >
+                  <strong className="block text-lg font-bold mb-1">Agent</strong>
+                  <span className="text-xs font-medium opacity-80">Provide services (Requires Approval)</span>
+                </button>
+              </div>
+
+              <button
                 onClick={handleGoogleSignup}
                 disabled={submitting}
-                className="w-full bg-[#5c6bc0] text-white font-semibold py-3 rounded-lg hover:bg-[#4c5ab0] transition-colors disabled:opacity-50"
-             >
+                className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-medium text-[15px] py-3.5 rounded-xl shadow-[0_4px_14px_0_rgba(99,102,241,0.39)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.23)] transition-all duration-200 disabled:opacity-60 disabled:shadow-none mb-4"
+              >
                 {submitting ? 'Setting up...' : 'Continue'}
-             </button>
-             <button 
+              </button>
+              <button
                 onClick={() => setShowRoleModal(false)}
-                className="mt-3 text-sm text-gray-500 hover:underline"
-             >
+                className="text-sm font-medium text-slate-400 hover:text-slate-600 transition-colors"
+              >
                 Cancel
-             </button>
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Reusable input styles */}
-      <style jsx>{`
-        .input {
-          width: 100%;
-          padding: 0.75rem 1rem;
-          border-radius: 0.375rem;
-          border: 1px solid #d1d5db;
-          font-size: 0.875rem;
-          outline: none;
-        }
-        .input:focus {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-      `}</style>
-    </div>
+        )}
+      </div>
     </GoogleOAuthProvider>
   );
 }

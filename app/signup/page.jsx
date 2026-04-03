@@ -25,7 +25,7 @@ export default function SignupPage() {
   const [otpError, setOtpError] = useState('');
 
   const heroImageSrc =
-    'https://drive.google.com/uc?export=view&id=1ymxH4XgaFJvy6MWoNpyTtiu_C9m2p6pg';
+    'https://drive.google.com/uc?export=view&id=12ejbUJxqDC8cGp3t9ZJriA42Yh1j7E0K';
   const logoSrc =
     'https://drive.google.com/uc?export=view&id=1Dq2CNVPgjj7-5si_GoT7xkEpXYwT57gy';
 
@@ -112,10 +112,10 @@ export default function SignupPage() {
 
       const data = await response.json();
 
-      console.log('OTP Verification Response:', { 
-        ok: response.ok, 
-        status: response.status, 
-        data 
+      console.log('OTP Verification Response:', {
+        ok: response.ok,
+        status: response.status,
+        data
       });
 
       // Check if response is not ok
@@ -135,7 +135,7 @@ export default function SignupPage() {
       // Check if verification was successful - API returns success: true and status: 'VERIFIED'
       if (data.success === true && data.status === 'VERIFIED') {
         console.log('OTP verified successfully, preparing redirect...');
-        
+
         // OTP verified successfully - save to localStorage
         localStorage.setItem('user', JSON.stringify({
           name: otpData.formData.name,
@@ -148,10 +148,10 @@ export default function SignupPage() {
         setOtpData(null);
         setOtp('');
         setVerifying(false);
-        
+
         // Show success message briefly then redirect
         alert('Email verified successfully! Account created.');
-        
+
         // Use window.location for more reliable redirect
         console.log('Redirecting to /user page...');
         window.location.href = '/user';
@@ -176,42 +176,48 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#f0f4f8] flex items-center justify-center px-0">
-      <div className="w-full h-screen bg-white md:rounded-none rounded-none shadow-none md:shadow-none border-none overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2 h-full min-h-screen">
+    <div className="min-h-screen w-full flex items-center justify-center bg-white font-sans">
+      <div className="w-full h-screen bg-white overflow-y-auto md:overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 h-auto md:h-full min-h-screen">
 
-          {/* LEFT SIDE */}
-          <div className="bg-[#c7d3e3] flex flex-col items-center justify-center p-4 md:p-8 text-center h-full">
-            <div className="relative w-full max-w-2xl aspect-square">
-              <Image
-                src={heroImageSrc}
-                alt="Welcome Illustration"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
+          {/* LEFT SIDE - Image fills entire box */}
+          <div className="relative bg-[#c7d3e3] hidden md:block">
+            <Image
+              src={heroImageSrc}
+              alt="Welcome Illustration"
+              fill
+              className="object-cover"
+              priority
+              sizes="50vw"
+            />
+            {/* Optional overlay if image is too bright */}
+            <div className="absolute inset-0 bg-black/5"></div>
           </div>
 
           {/* RIGHT SIDE */}
-          <div className="flex flex-col justify-center px-8 md:px-12 py-10 bg-[#f9fafb] h-full">
+          <div className="flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12 bg-white overflow-y-auto">
             {/* Logo */}
             <div className="flex justify-center mb-6">
-              <div className="h-48 w-48 rounded-full border border-gray-300 flex items-center justify-center bg-white">
+              <div className="h-28 w-28 md:h-32 md:w-32 rounded-full border border-slate-100 flex items-center justify-center bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-4 ring-slate-50 transition-all duration-300">
                 <Image
                   src={logoSrc}
                   alt="Logo"
-                  width={140}
-                  height={140}
+                  width={90}
+                  height={90}
                   className="object-contain"
                 />
               </div>
             </div>
 
+            {/* Heading */}
+            <h2 className="text-center text-3xl font-extrabold text-slate-800 tracking-tight mb-8">
+              Create your account
+            </h2>
+
             {/* FORM */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                <div className="mb-6 text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-lg shadow-sm">
                   {error}
                 </div>
               )}
@@ -222,7 +228,7 @@ export default function SignupPage() {
                 required
                 value={form.name}
                 onChange={handleChange('name')}
-                className="input text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
 
@@ -232,17 +238,17 @@ export default function SignupPage() {
                 required
                 value={form.phoneNumber}
                 onChange={handleChange('phoneNumber')}
-                className="input text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
 
               <input
                 type="email"
-                placeholder="Email"
+                placeholder="Email address"
                 required
                 value={form.email}
                 onChange={handleChange('email')}
-                className="input bg-blue-50 input text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
 
@@ -252,7 +258,7 @@ export default function SignupPage() {
                 required
                 value={form.address}
                 onChange={handleChange('address')}
-                className="input text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
 
@@ -262,7 +268,7 @@ export default function SignupPage() {
                 required
                 value={form.password}
                 onChange={handleChange('password')}
-                className="input bg-blue-50 text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
 
@@ -272,30 +278,36 @@ export default function SignupPage() {
                 required
                 value={form.confirmPassword}
                 onChange={handleChange('confirmPassword')}
-                className="input text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-[#5c6bc0] hover:bg-[#4c5ab0] text-white font-semibold py-3 rounded-md transition disabled:opacity-60"
+                className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-medium text-[15px] py-3.5 rounded-xl shadow-[0_4px_14px_0_rgba(99,102,241,0.39)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.23)] transition-all duration-200 disabled:opacity-60 disabled:shadow-none mt-2"
                 suppressHydrationWarning
               >
                 {submitting ? 'Sending OTP...' : 'Sign Up'}
               </button>
             </form>
 
+            <div className="my-8 flex items-center justify-center">
+              <div className="flex-grow h-px bg-slate-200"></div>
+              <span className="px-4 text-xs font-semibold text-slate-400 tracking-wider uppercase">Or</span>
+              <div className="flex-grow h-px bg-slate-200"></div>
+            </div>
+
             {/* LINKS */}
-            <div className="mt-6 text-sm text-center text-gray-600 space-y-2">
+            <div className="mt-2 text-sm text-center text-slate-500 space-y-3">
               <p>
                 Already have an account?{' '}
-                <Link href="/login" className="text-blue-600 font-semibold hover:underline">
+                <Link href="/login" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
                   Login now
                 </Link>
               </p>
               <p>
-                <Link href="/agent-signup" className="text-blue-600 font-semibold hover:underline">
+                <Link href="/agent-signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
                   Sign up as agent
                 </Link>
               </p>
@@ -306,24 +318,25 @@ export default function SignupPage() {
 
       {/* OTP Verification Modal */}
       {showOtpModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify Your Email</h2>
-            <p className="text-gray-600 mb-4">
-              We've sent a 6-digit OTP to <strong>{otpData?.email}</strong>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-8 text-center border border-slate-100">
+            <h2 className="text-2xl font-bold text-slate-800 mb-2 tracking-tight">Verify Your Email</h2>
+            <p className="text-sm text-slate-500 mb-4 font-medium">
+              We've sent a 6-digit OTP to <strong className="text-slate-700">{otpData?.email}</strong>
             </p>
-            <p className="text-sm text-green-600 mb-6 bg-green-50 p-3 rounded">
-              ✓ OTP sent to your email
+            <p className="text-xs text-emerald-600 mb-6 bg-emerald-50 border border-emerald-100 p-2.5 rounded-lg font-medium inline-block flex items-center justify-center gap-1.5 mx-auto">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+              OTP sent to your email
             </p>
 
             {otpError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              <div className="mb-6 text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-lg shadow-sm text-left">
                 {otpError}
               </div>
             )}
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-8 text-left">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">
                 Enter 6-Digit OTP
               </label>
               <input
@@ -332,7 +345,7 @@ export default function SignupPage() {
                 onChange={handleOtpChange}
                 placeholder="000000"
                 maxLength={6}
-                className="w-full px-4 py-3 text-center text-2xl font-bold tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-4 py-3 text-center text-3xl font-bold tracking-[0.5em] border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out text-slate-800 bg-slate-50"
                 autoFocus
               />
             </div>
@@ -345,7 +358,7 @@ export default function SignupPage() {
                   setOtp('');
                   setOtpError('');
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium"
                 disabled={verifying}
               >
                 Cancel
@@ -353,7 +366,7 @@ export default function SignupPage() {
               <button
                 onClick={handleVerifyOtp}
                 disabled={verifying || otp.length !== 6}
-                className="flex-1 px-4 py-2 bg-[#5c6bc0] text-white rounded-lg hover:bg-[#4c5ab0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-medium py-3 rounded-xl shadow-[0_4px_14px_0_rgba(99,102,241,0.39)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.23)] transition-all duration-200 disabled:opacity-60 disabled:shadow-none"
               >
                 {verifying ? 'Verifying...' : 'Verify'}
               </button>
@@ -361,22 +374,6 @@ export default function SignupPage() {
           </div>
         </div>
       )}
-
-      {/* Reusable input styles */}
-      <style jsx>{`
-        .input {
-          width: 100%;
-          padding: 0.75rem 1rem;
-          border-radius: 0.375rem;
-          border: 1px solid #d1d5db;
-          font-size: 0.875rem;
-          outline: none;
-        }
-        .input:focus {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-      `}</style>
     </div>
   );
 }

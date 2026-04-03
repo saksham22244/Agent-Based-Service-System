@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaBell, FaUserCircle, FaEnvelope, FaMapMarkerAlt, FaPhoneAlt, FaTimes } from 'react-icons/fa';
+import { FaBell, FaUserCircle, FaEnvelope, FaMapMarkerAlt, FaPhoneAlt, FaTimes, FaTrashAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 import Sidebar from '@/components/Sidebar';
+import TopHeader from '@/components/TopHeader';
 
 export default function UserHomePage() {
   const router = useRouter();
@@ -87,6 +88,19 @@ export default function UserHomePage() {
     }
   };
 
+  const handleDeleteNotice = async (noticeId) => {
+    if (!window.confirm('Securely remove this notice?')) return;
+    try {
+      const res = await fetch(`/api/notices/${noticeId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setNotices(notices.filter(n => n.id !== noticeId));
+        toast.success('Notice removed');
+      }
+    } catch (err) {
+      toast.error('Failed to remove notice');
+    }
+  };
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (!userData) {
@@ -143,6 +157,8 @@ export default function UserHomePage() {
               <h2 className="text-3xl font-bold text-gray-900">Welcome back, {user.name}</h2>
               <p className="mt-2 text-gray-600">Here's an overview of your dashboard and available services.</p>
             </div>
+            {/* Top Right Profile Actions */}
+            <TopHeader user={user} setUser={setUser} noticesCount={notices.length} hideSearch={true} />
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -207,8 +223,20 @@ export default function UserHomePage() {
                           <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600 flex-shrink-0">
                             <FaBell size={18} />
                           </div>
-                          <div>
-                            <p className="text-sm font-bold text-gray-900 leading-tight">{n.title}</p>
+                         <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                              <p className="text-sm font-bold text-gray-900 leading-tight">{n.title}</p>
+                              <button 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleDeleteNotice(n.id);
+                                }}
+                                className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                title="Discard"
+                              >
+                                <FaTrashAlt size={12} />
+                              </button>
+                            </div>
                             <p className="text-sm text-gray-600 mt-1.5 line-clamp-3">{n.message}</p>
                           </div>
                         </div>

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { transactionDb } from '@/lib/db';
+import { transactionDb, agentDb } from '@/lib/db';
 
 export async function POST(req) {
   try {
@@ -42,6 +42,16 @@ export async function POST(req) {
 
         // Update the transaction status
         await transactionDb.updateStatus(transaction.product_id, newStatus);
+        
+        // Custom logic for direct_payment
+        if (transaction.type === 'direct_payment' && newStatus === 'COMPLETE') {
+            const agent = await agentDb.getById(transaction.userId);
+            if (agent) {
+                const newTotalPaid = (agent.totalPaid || 0) + transaction.amount;
+                await agentDb.update(agent.id, { totalPaid: newTotalPaid });
+                console.log(`Updated agent ${agent.name} totalPaid to ${newTotalPaid}`);
+            }
+        }
         
         return NextResponse.json({ message: "Transaction status updated successfully", status: newStatus }, { status: 200 });
     } else {

@@ -3,6 +3,29 @@ import { agentDb } from '@/lib/db';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
 
+export async function GET(request, { params }) {
+  try {
+    const { id } = await params;
+    
+    const agent = await agentDb.getById(id);
+    
+    if (!agent) {
+      return NextResponse.json(
+        { error: 'Agent not found' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json(agent);
+  } catch (error) {
+    console.error('Error fetching agent:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch agent' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(request, { params }) {
   try {
     const { id } = await params;

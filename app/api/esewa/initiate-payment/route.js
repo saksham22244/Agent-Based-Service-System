@@ -4,7 +4,7 @@ import { transactionDb } from '@/lib/db';
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { amount, productId, userId } = body;
+    const { amount, productId, userId, type, note } = body;
 
     if (!amount || !productId || !userId) {
       return NextResponse.json({ message: "Missing required fields: amount, productId, or userId" }, { status: 400 });
@@ -45,7 +45,9 @@ export async function POST(req) {
             product_id: productId,
             amount,
             userId,
-            status: 'PENDING'
+            status: 'PENDING',
+            ...(type && { type }),
+            ...(note && { note })
         });
         console.log("Transaction saved successfully");
 

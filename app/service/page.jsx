@@ -10,6 +10,7 @@ export default function ServicePage() {
   const [userRole, setUserRole] = useState('admin');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [newService, setNewService] = useState({ 
     name: '', 
@@ -69,6 +70,13 @@ export default function ServicePage() {
       }
     }
     fetchServices();
+
+    // Handle search query from URL
+    const params = new URLSearchParams(window.location.search);
+    const search = params.get('search');
+    if (search) {
+      setSearchQuery(search);
+    }
   }, []);
 
   const handleApproveService = async (id, status) => {
@@ -250,8 +258,7 @@ export default function ServicePage() {
                 <FaPen className="text-xl md:text-2xl" />
               </div>
               <div>
-                <h1 className="text-lg md:text-2xl font-bold text-gray-800">AGENT BASED</h1>
-                <p className="text-xs md:text-sm text-gray-600">SERVICE MANAGEMENT</p>
+                <h1 className="text-lg md:text-2xl font-bold text-gray-800">AGENT BASED SERVICE MANAGEMENT</h1>
               </div>
             </div>
             
@@ -341,9 +348,38 @@ export default function ServicePage() {
             </div>
           ) : (
             <>
+              {/* Internal Search / Filter Bar */}
+              <div className="mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
+                 <div className="flex-1 relative">
+                    <input 
+                      type="text" 
+                      placeholder="Filter services by name..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                    />
+                    <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                 </div>
+                 {searchQuery && (
+                   <button 
+                     onClick={() => setSearchQuery('')}
+                     className="text-gray-400 hover:text-gray-600 text-sm font-medium"
+                   >
+                     Clear
+                   </button>
+                 )}
+              </div>
+
               {/* Services Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {services.map((service) => (
+                {services
+                  .filter(service => 
+                    service.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    service.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((service) => (
               <div 
                 key={service.id}
                 className="bg-white border hover:shadow-xl transition-shadow border-gray-200 rounded-xl overflow-hidden flex flex-col relative group"

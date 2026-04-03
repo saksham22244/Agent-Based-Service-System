@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { FaBell, FaUserCircle, FaEnvelope, FaMapMarkerAlt, FaPhoneAlt, FaTimes } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import Sidebar from '@/components/Sidebar';
+import TopHeader from '@/components/TopHeader';
 
 export default function AgentHomePage() {
   const router = useRouter();
@@ -68,6 +69,8 @@ export default function AgentHomePage() {
               <h2 className="text-3xl font-bold text-gray-900 mb-2">Agent Dashboard</h2>
               <p className="text-gray-500 text-[15px]">Welcome back, <span className="font-semibold text-gray-700">{agent?.name || 'Agent'}</span>. Check your latest notices and manage requests efficiently.</p>
             </div>
+            {/* Top Right Profile Actions */}
+            <TopHeader user={agent} setUser={setAgent} noticesCount={notices.length} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

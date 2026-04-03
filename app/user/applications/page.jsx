@@ -10,6 +10,9 @@ export default function UserApplicationsPage() {
   const router = useRouter();
   const [applications, setApplications] = useState([]);
   const [servicesMap, setServicesMap] = useState({});
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,7 +30,8 @@ export default function UserApplicationsPage() {
       const sMap = {};
       (servicesData.services || []).forEach(s => { sMap[s.id] = s; });
       setServicesMap(sMap);
-      setApplications(appsData || []);
+      const activeApps = (appsData || []).filter(app => app.status !== 'work_completed');
+      setApplications(activeApps);
       setLoading(false);
     }).catch(err => {
       console.error(err);
@@ -55,13 +59,18 @@ export default function UserApplicationsPage() {
     }
   };
 
+  const totalPages = Math.max(1, Math.ceil(applications.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const paginatedApps = applications.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full">
         <div className="h-1 bg-gradient-to-r from-blue-500 to-[#5C5470] flex-shrink-0"></div>
         <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Service Ticket History</h2>
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Active Service Tracker</h2>
         
         {loading ? (
           <div className="flex justify-center items-center h-48">
@@ -89,7 +98,7 @@ export default function UserApplicationsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {applications.map(app => (
+                {paginatedApps.map(app => (
                   <tr key={app.id} className="hover:bg-blue-50/40 transition-colors">
                     <td className="px-6 py-5">
                       <div className="font-bold text-gray-900 text-base">
@@ -123,6 +132,30 @@ export default function UserApplicationsPage() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-end gap-1.5 text-xs text-gray-700 bg-gray-50 px-4 py-3 border-t border-gray-200">
+                <span className="mr-0.5">Show</span>
+                {Array.from({ length: totalPages }).map((_, index) => {
+                  const pageNumber = index + 1;
+                  return (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      onClick={() => setCurrentPage(pageNumber)}
+                      className={`px-2 py-0.5 rounded border text-xs transition-colors ${
+                        safeCurrentPage === pageNumber
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
         </div>
