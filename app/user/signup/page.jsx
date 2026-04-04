@@ -127,7 +127,7 @@ export default function SignupPage() {
           setShowOtpModal(false);
           setOtpData(null);
           setOtp('');
-          router.push('/signup');
+          router.push('/user/signup');
         }, 2000);
         return;
       }
@@ -307,7 +307,7 @@ export default function SignupPage() {
                 </Link>
               </p>
               <p>
-                <Link href="/agent-signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
+                <Link href="/agent/signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
                   Sign up as agent
                 </Link>
               </p>

@@ -46,7 +46,7 @@ export default function LoginPage() {
 
         // Check user role and redirect accordingly
         if (data.user.role === 'admin' || data.user.role === 'superadmin') {
-          router.push('/dashboard');  // Admin goes to dashboard
+          router.push('/admin');  // Admin goes to admin panel
         } else if (data.user.role === 'user') {
           router.push('/user');  // Regular user goes to /user
         } else if (data.user.role === 'agent') {
@@ -57,7 +57,7 @@ export default function LoginPage() {
         }
       } else {
         if (data.error === 'PENDING_APPROVAL') {
-          router.push('/pending-approval');
+          router.push('/agent/pending-approval');
         } else {
           setError(data.error || 'Login failed');
         }
@@ -92,14 +92,14 @@ export default function LoginPage() {
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
           toast.success('Login successfully!');
-          if (data.user.role === 'admin' || data.user.role === 'superadmin') router.push('/dashboard');
+          if (data.user.role === 'admin' || data.user.role === 'superadmin') router.push('/admin');
           else if (data.user.role === 'user') router.push('/user');
           else if (data.user.role === 'agent') router.push('/agent');
           else router.push('/user');
         }
       } else {
         if (data.error === 'PENDING_APPROVAL') {
-          router.push('/pending-approval');
+          router.push('/agent/pending-approval');
         } else {
           setError(data.error || 'Google login failed');
         }
@@ -125,7 +125,7 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify(data.user));
         router.push('/user');
       } else if (data.error === 'PENDING_APPROVAL' || data.status === 'PENDING_APPROVAL') {
-        router.push('/pending-approval');
+        router.push('/agent/pending-approval');
       } else {
         setError(data.error || 'Failed to finish Google signup');
         setShowRoleModal(false);
@@ -242,12 +242,12 @@ export default function LoginPage() {
               <div className="mt-8 text-sm text-center text-slate-500 space-y-3">
                 <p>
                   Don&apos;t have an account?{' '}
-                  <Link href="/signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
+                  <Link href="/user/signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
                     Sign up as user
                   </Link>
                 </p>
                 <p>
-                  <Link href="/agent-signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
+                  <Link href="/agent/signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
                     Sign up as agent
                   </Link>
                 </p>

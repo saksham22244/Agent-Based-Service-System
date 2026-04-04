@@ -24,30 +24,30 @@ export default function Sidebar() {
             { href: '/user/services', label: 'SERVICES' },
             { href: '/user/applications', label: 'TRACKER' },
             { href: '/user/history', label: 'HISTORY' },
-            { href: '/send-notice', label: 'CONTACT ADMIN' }
+            { href: '/user/send-notice', label: 'CONTACT ADMIN' }
           ]);
         } else if (user.role === 'agent') {
           setNavItems([
             { href: '/agent', label: 'HOME' },
             { href: '/agent/work', label: 'WORK DASHBOARD' },
             { href: '/agent/notices', label: 'NOTICES' },
-            { href: '/request', label: 'REQUESTS' },
-            { href: '/history', label: 'HISTORY' },
-            { href: '/service', label: 'SERVICES' },
-            { href: '/payment-history', label: 'PAYMENT DETAILS' },
-            { href: '/send-notice', label: 'CONTACT ADMIN' }
+            { href: '/agent/requests', label: 'REQUESTS' },
+            { href: '/agent/history', label: 'HISTORY' },
+            { href: '/agent/services', label: 'SERVICES' },
+            { href: '/agent/payment-history', label: 'PAYMENT DETAILS' },
+            { href: '/agent/send-notice', label: 'CONTACT ADMIN' }
           ]);
         } else {
           // Admin / Superadmin
           setNavItems([
-            { href: '/dashboard', label: 'DASHBOARD' },
+            { href: '/admin', label: 'DASHBOARD' },
             { href: '/admin/agent-management', label: 'AGENT MANAGEMENT' },
             { href: '/admin/inbox', label: 'INBOX' },
             { href: '/admin/agent-payments', label: 'QUICK PAYMENTS' },
-            { href: '/notice', label: 'SEND NOTICES' },
-            { href: '/request', label: 'REQUESTS' },
-            { href: '/history', label: 'HISTORY' },
-            { href: '/service', label: 'SERVICES' }
+            { href: '/admin/notices', label: 'NOTICES' },
+            { href: '/admin/requests', label: 'REQUESTS' },
+            { href: '/admin/history', label: 'HISTORY' },
+            { href: '/admin/services', label: 'SERVICES' }
           ]);
         }
       } catch (e) {

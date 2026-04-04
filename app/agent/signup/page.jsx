@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function AgentSignupPage() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function AgentSignupPage() {
           setShowOtpModal(false);
           setOtpData(null);
           setOtp('');
-          router.push('/agent-signup');
+          router.push('/agent/signup');
         }, 2000);
         return;
       }
@@ -341,14 +342,14 @@ export default function AgentSignupPage() {
             <div className="mt-2 text-sm text-center text-slate-500 space-y-3">
               <p>
                 Already have an account?{' '}
-                <a href="/login" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
+                <Link href="/login" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
                   Login now
-                </a>
+                </Link>
               </p>
               <p>
-                <a href="/signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
+                <Link href="/user/signup" className="text-indigo-600 font-semibold hover:text-indigo-700 hover:underline decoration-indigo-200 underline-offset-4 transition-all">
                   Sign up as user
-                </a>
+                </Link>
               </p>
             </div>
           </div>

@@ -1,0 +1,254 @@
+├── .env.local
+├── .gitignore
+├── .vscode
+│   └── settings.json
+├── app
+│   ├── admin
+│   │   ├── agent-management
+│   │   │   └── page.jsx
+│   │   ├── agent-payments
+│   │   │   └── page.jsx
+│   │   ├── history
+│   │   │   └── page.jsx
+│   │   ├── inbox
+│   │   │   └── page.jsx
+│   │   ├── notices
+│   │   │   └── page.jsx
+│   │   ├── page.jsx
+│   │   ├── requests
+│   │   │   └── page.jsx
+│   │   ├── send-notice
+│   │   │   └── page.jsx
+│   │   └── services
+│   │       └── page.jsx
+│   ├── agent
+│   │   ├── history
+│   │   │   └── page.jsx
+│   │   ├── notices
+│   │   │   └── page.jsx
+│   │   ├── page.jsx
+│   │   ├── payment-failure
+│   │   ├── payment-history
+│   │   │   └── page.jsx
+│   │   ├── payment-success
+│   │   ├── pending-approval
+│   │   │   └── page.jsx
+│   │   ├── profile
+│   │   ├── requests
+│   │   │   └── page.jsx
+│   │   ├── send-notice
+│   │   │   └── page.jsx
+│   │   ├── services
+│   │   │   └── page.jsx
+│   │   ├── signup
+│   │   │   └── page.jsx
+│   │   └── work
+│   │       └── page.jsx
+│   ├── api
+│   │   ├── admin
+│   │   │   ├── agent-direct-payment
+│   │   │   │   └── route.js
+│   │   │   ├── agent-payments
+│   │   │   │   └── route.js
+│   │   │   ├── agents
+│   │   │   │   ├── route.js
+│   │   │   │   └── [id]
+│   │   │   │       └── route.js
+│   │   │   ├── applications
+│   │   │   │   └── route.js
+│   │   │   ├── bulk
+│   │   │   │   └── route.js
+│   │   │   ├── login
+│   │   │   │   └── route.js
+│   │   │   ├── notices
+│   │   │   │   ├── bulk
+│   │   │   │   │   └── route.js
+│   │   │   │   ├── route.js
+│   │   │   │   ├── send
+│   │   │   │   │   └── route.js
+│   │   │   │   └── [id]
+│   │   │   │       ├── read
+│   │   │   │       └── route.js
+│   │   │   ├── search
+│   │   │   │   └── route.js
+│   │   │   ├── services
+│   │   │   │   ├── route.js
+│   │   │   │   └── [id]
+│   │   │   │       ├── route.js
+│   │   │   │       └── users
+│   │   │   │           └── route.js
+│   │   │   ├── statistics
+│   │   │   │   └── route.js
+│   │   │   ├── user-services
+│   │   │   │   └── bulk
+│   │   │   │       └── route.js
+│   │   │   └── users
+│   │   │       ├── route.js
+│   │   │       └── [id]
+│   │   │           ├── route.js
+│   │   │           └── services
+│   │   │               └── route.js
+│   │   ├── agent
+│   │   │   ├── applications
+│   │   │   │   └── route.js
+│   │   │   ├── notices
+│   │   │   │   └── [id]
+│   │   │   │       └── read
+│   │   │   ├── payments
+│   │   │   ├── profile
+│   │   │   │   └── [id]
+│   │   │   └── [id]
+│   │   │       └── payments
+│   │   │           └── route.js
+│   │   ├── agents
+│   │   │   ├── route.js
+│   │   │   └── [id]
+│   │   │       ├── notices
+│   │   │       │   └── route.js
+│   │   │       └── route.js
+│   │   ├── applications
+│   │   │   ├── route.js
+│   │   │   └── [id]
+│   │   │       └── route.js
+│   │   ├── auth
+│   │   │   ├── callback
+│   │   │   │   └── route.js
+│   │   │   ├── google
+│   │   │   │   ├── route.js
+│   │   │   │   └── signup
+│   │   │   │       └── route.js
+│   │   │   ├── send-otp
+│   │   │   │   └── route.js
+│   │   │   └── verify-otp
+│   │   │       └── route.js
+│   │   ├── esewa
+│   │   │   ├── agent-payment-failed
+│   │   │   │   └── route.js
+│   │   │   ├── check-user-status
+│   │   │   │   └── route.js
+│   │   │   ├── complete-agent-payment
+│   │   │   ├── initiate-agent-payment
+│   │   │   ├── initiate-payment
+│   │   │   │   └── route.js
+│   │   │   └── payment-status
+│   │   │       └── route.js
+│   │   ├── notices
+│   │   │   ├── admin
+│   │   │   │   ├── inbox
+│   │   │   │   │   └── route.js
+│   │   │   │   └── route.js
+│   │   │   ├── reply
+│   │   │   │   └── route.js
+│   │   │   └── [id]
+│   │   │       ├── read
+│   │   │       │   └── route.js
+│   │   │       └── route.js
+│   │   ├── user
+│   │   │   ├── applications
+│   │   │   │   ├── route.js
+│   │   │   │   └── [id]
+│   │   │   ├── notices
+│   │   │   │   └── [id]
+│   │   │   │       └── read
+│   │   │   └── profile
+│   │   │       └── [id]
+│   │   └── users
+│   │       ├── route.js
+│   │       └── [id]
+│   │           ├── notices
+│   │           │   └── route.js
+│   │           └── route.js
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── layout.jsx
+│   ├── login
+│   │   └── page.jsx
+│   ├── page.jsx
+│   └── user
+│       ├── applications
+│       │   └── page.jsx
+│       ├── history
+│       │   └── page.jsx
+│       ├── notices
+│       │   └── page.jsx
+│       ├── page.jsx
+│       ├── payment-failure
+│       │   └── page.jsx
+│       ├── payment-history
+│       │   └── page.jsx
+│       ├── payment-success
+│       │   └── page.jsx
+│       ├── send-notice
+│       │   └── page.jsx
+│       ├── services
+│       │   └── page.jsx
+│       └── signup
+│           └── page.jsx
+├── codebase_tree.txt
+├── components
+│   ├── AgentForm.jsx
+│   ├── Navbar.jsx
+│   ├── NoticeForm.jsx
+│   ├── SessionProvider.jsx
+│   ├── Sidebar.jsx
+│   ├── TopHeader.jsx
+│   └── UserForm.jsx
+├── current_files.txt
+├── eslint.config.mjs
+├── jsconfig.json
+├── lib
+│   ├── admin-middleware.js
+│   ├── auth.js
+│   ├── db.js
+│   ├── email.js
+│   └── mongodb.js
+├── next.config.js
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+└── public
+    ├── file.svg
+    ├── globe.svg
+    ├── next.svg
+    ├── uploads
+    │   ├── agents
+    │   │   ├── 1763833092958-ChatGPT Image Nov 19, 2025, 08_43_22 PM.png
+    │   │   ├── 1763868605707-ChatGPT Image Nov 19, 2025, 08_43_22 PM.png
+    │   │   ├── 1764167411508-image_1_1763884315329.jpg
+    │   │   ├── 1764208482143-images.jpg
+    │   │   ├── 1764654875768-Entity Relationship diagram.png
+    │   │   ├── 1764655893539-Screenshot 2025-05-28 080758.png
+    │   │   ├── 1764656071061-Activity diagram.png
+    │   │   ├── 1764843625329-Screenshot 2025-05-28 080758.png
+    │   │   ├── 1765447437803-Screenshot 2025-07-02 204109.png
+    │   │   ├── 1767938725823-Herald.png
+    │   │   ├── 1773997874652-prithvi-Narayan-Shah-1024x529.jpg
+    │   │   ├── 1774538696565-bcdb6ce4-cac7-4d62-ad46-95e73ff48b4d_BEE7B0E6-747A-427E-A9F9-0302AFC6292E.jpeg
+    │   │   ├── 1774541178498-bcdb6ce4-cac7-4d62-ad46-95e73ff48b4d_BEE7B0E6-747A-427E-A9F9-0302AFC6292E.jpeg
+    │   │   ├── 1774541303042-bcdb6ce4-cac7-4d62-ad46-95e73ff48b4d_BEE7B0E6-747A-427E-A9F9-0302AFC6292E.jpeg
+    │   │   ├── 1774541317808-bcdb6ce4-cac7-4d62-ad46-95e73ff48b4d_BEE7B0E6-747A-427E-A9F9-0302AFC6292E.jpeg
+    │   │   ├── loginimage.png
+    │   │   └── logo.png
+    │   ├── applications
+    │   │   ├── 1773998520940-WhatsAppImage2026-02-04at12.45.29.jpeg
+    │   │   ├── 1774582646550-1773998520940-WhatsAppImage2026-02-04at12.45.29.jpeg
+    │   │   ├── 1774582646559-Saksham_Sigdel_Week3.pdf
+    │   │   ├── 1774608525944-Screenshot2025-05-28080758.png
+    │   │   ├── 1775122432580-AttendanceReport-SakshamSigdelNP03CS4A230546.pdf
+    │   │   ├── 1775124208952-AttendanceReport-SakshamSigdelNP03CS4A230546.pdf
+    │   │   ├── 1775130629740-Saksham_Sigdel_Bigdata_6CS030Workshop4.pdf
+    │   │   ├── 1775179773931-LaTex_in_Overleaf.pdf
+    │   │   ├── 1775179866489-Tutorial-05-UnderstandingConvolutionalNeuralNetwork.pdf
+    │   │   └── 1775189620518-mongo_Weather_Template-Workshop5-1.pdf
+    │   ├── services
+    │   │   ├── 1773971982826-prithvi-Narayan-Shah-1024x529.jpg
+    │   │   ├── 1773973175835-prithvi-Narayan-Shah-1024x529.jpg
+    │   │   ├── 1773973935749-prithvi-Narayan-Shah-1024x529.jpg
+    │   │   ├── 1773973979959-prithvi-Narayan-Shah-1024x529.jpg
+    │   │   ├── 1774582480116-images.jpg
+    │   │   ├── 1774599878387-images.jpg
+    │   │   └── 1774608477582-images.jpg
+    │   └── users
+    │       └── 1775057459791-WhatsApp Image 2025-07-03 at 12.31.24.jpeg
+    ├── vercel.svg
+    └── window.svg
