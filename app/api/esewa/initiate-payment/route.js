@@ -17,8 +17,13 @@ export async function POST(req) {
     const protocol = req.headers.get('x-forwarded-proto') || 'http';
     const host = req.headers.get('host');
     const origin = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`;
-    const successUrl = `${origin}/payment-success`;
-    const failureUrl = `${origin}/payment-failure`;
+    
+    // Check if the client provided explicit paths, otherwise default to user paths
+    const successPath = body.successPath || '/user/payment-success';
+    const failurePath = body.failurePath || '/user/payment-failure';
+    
+    const successUrl = `${origin}${successPath}`;
+    const failureUrl = `${origin}${failurePath}`;
 
     const reqPayment = await EsewaPaymentGateway(
         amount,

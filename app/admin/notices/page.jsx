@@ -6,35 +6,45 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 export default function NoticePage() {
-  const [title, setTitle] = useState('');
-  const [message, setMessage] = useState('');
-  const [recipientType, setRecipientType] = useState('user'); // user, agent
-  const [recipients, setRecipients] = useState(''); // Empty initially
-  const [priority, setPriority] = useState('normal'); // low, normal, high, urgent
-  const [notices, setNotices] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [agents, setAgents] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState({});
+  // --- STATE VARIABLES (Where React temporarily stores data) ---
+  const [title, setTitle] = useState(''); // The subject of the notice
+  const [message, setMessage] = useState(''); // The body paragraph of the notice
+  const [recipientType, setRecipientType] = useState('user'); // Toggle: sending to 'user' or 'agent'
+  const [recipients, setRecipients] = useState(''); // Stores the specific ID of the person receiving it, or 'all'
+  const [priority, setPriority] = useState('normal'); // The urgency color (low, normal, high, urgent)
+  
+  // States holding arrays of data fetched from the database
+  const [notices, setNotices] = useState([]); // List of previously sent notices
+  const [users, setUsers] = useState([]); // List of all registered users
+  const [agents, setAgents] = useState([]); // List of all registered agents
+  
+  const [currentUser, setCurrentUser] = useState(null); // The currently logged-in Admin
+  const [loading, setLoading] = useState(false); // Used to show the "Sending..." spinning wheel
+  const [deleteLoading, setDeleteLoading] = useState({}); // Tracking which specific notice is actively being deleted
+  
+  // Pagination tracking (cutting long lists into pages of 5)
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Fetch existing notices and users/agents
+  // --- INITIALIZATION (Runs exactly once when the page opens) ---
   useEffect(() => {
+    // 1. Read the browser's persistent storage to see who is logged in
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      setCurrentUser(JSON.parse(userStr));
+      setCurrentUser(JSON.parse(userStr)); // Convert the string back into a JSON object and save to state
     }
+    // 2. Automatically download data from the API to fill the tables
     fetchData();
   }, []);
 
+  // --- DATA FETCHING LOGIC ---
   const fetchData = async () => {
     try {
+      // Promise.all runs all 3 API fetches simultaneously for faster load times.
       const [noticesRes, usersRes, agentsRes] = await Promise.all([
-        fetch('/api/admin/notices'),
-        fetch('/api/users'),
-        fetch('/api/agents'),
+        fetch('/api/admin/notices'), // Download past notices
+        fetch('/api/users'),         // Download all users
+        fetch('/api/agents'),        // Download all agents
       ]);
 
       const noticesData = await noticesRes.json();
@@ -44,9 +54,11 @@ export default function NoticePage() {
       const rawNotices = noticesData.notices || [];
       const groupedMap = new Map();
       
+      // --- GROUPING LOGIC ---
+      // If an Admin sends 1 notice to 50 users, the DB makes 50 individual records.
+      // This loop merges duplicate messages sent at the exact same minute into ONE visual box.
       rawNotices.forEach(notice => {
-        // Group by title, message, recipient type and minute to combine batch messages
-        const timeKey = new Date(notice.createdAt).toISOString().substring(0, 16);
+        const timeKey = new Date(notice.createdAt).toISOString().substring(0, 16); // Round time to the exact minute
         const key = `${notice.title}|${notice.message}|${notice.recipientType}|${timeKey}`;
         
         if (!groupedMap.has(key)) {
@@ -58,17 +70,19 @@ export default function NoticePage() {
         }
       });
       
+      // Sort the final collapsed list from Newest -> Oldest
       const sortedNotices = Array.from(groupedMap.values()).sort((a, b) => 
         new Date(b.createdAt) - new Date(a.createdAt)
       );
 
-      setNotices(sortedNotices);
+      setNotices(sortedNotices); // Save to React State to visually render
       
+      // Filter out the 'admin@example.com' so they don't accidentally message themselves
       const filteredUsers = usersData.filter(u => u.email !== 'admin@example.com');
       setUsers(filteredUsers);
       setAgents(agentsData);
 
-      // Set safe default recipient if needed
+      // Setup default placeholder selection for the Dropdown menu ("All Users")
       const userStr = localStorage.getItem('user');
       let isAdmin = false;
       if (userStr) {
@@ -76,9 +90,9 @@ export default function NoticePage() {
         isAdmin = u.role === 'admin' || u.role === 'superadmin';
       }
       if (isAdmin) {
-         setRecipients('all');
+         setRecipients('all'); // Admins default to sending to everyone
       } else if (filteredUsers.length > 0) {
-         setRecipients(filteredUsers[0].id);
+         setRecipients(filteredUsers[0].id); // Users default to first ID
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -86,23 +100,27 @@ export default function NoticePage() {
     }
   };
 
+  // --- FORM SUBMISSION ---
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent standard browser reloading on form submit
+    
+    // Quick validation check
     if (!title || !message) {
       toast.error('Please fill all fields');
       return;
     }
 
-    setLoading(true);
+    setLoading(true); // Spin the "Sending..." button
 
     try {
+      // POST the data to our backend Next.js API string
       const response = await fetch('/api/admin/notices/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title,
+          title,           // Note: Next.js API parses this `req.body` and creates MongoDB items
           message,
           recipientType,
           recipients,
@@ -133,15 +151,17 @@ export default function NoticePage() {
     }
   };
 
+  // --- DELETING LOGIC ---
   const handleDelete = async (notice) => {
     if (!confirm('Are you sure you want to delete this notice?')) {
-      return;
+      return; // Stop if they click 'Cancel' on the browser prompt
     }
 
-    // Set loading state for this specific notice
+    // Set a loading indicator ONLY for the specific card being clicked
     setDeleteLoading(prev => ({ ...prev, [notice.id]: true }));
 
     try {
+      // If it is a grouped message (1 sent to multiple people), delete all records inside the group
       if (notice.groupedIds && notice.groupedIds.length > 1) {
         const deletePromises = notice.groupedIds.map(id => 
           fetch(`/api/admin/notices/${id}`, { method: 'DELETE' })
@@ -176,6 +196,7 @@ export default function NoticePage() {
     }
   };
 
+  // Simple utility function to return mapped CSS classes based on strict strings
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
@@ -185,8 +206,11 @@ export default function NoticePage() {
     }
   };
 
+  // --- PAGINATION MATH ---
+  // Calculates how many "Pages" exist (e.g. 15 items / 5 items_per_page = 3 totalPages)
   const totalPages = Math.max(1, Math.ceil(notices.length / itemsPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);
+  // Calculates Array Slice range (e.g. Page 2 starts at index 5 and slices to 10)
   const startIndex = (safeCurrentPage - 1) * itemsPerPage;
   const paginatedNotices = notices.slice(startIndex, startIndex + itemsPerPage);
 

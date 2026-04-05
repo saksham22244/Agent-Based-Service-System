@@ -112,6 +112,16 @@ export default function AdminAgentPaymentsPage() {
     }
   };
 
+  const getRemainingOwed = (agent) => {
+    const agentPayments = payments.filter(p => 
+      p.userId === agent.id && 
+      p.type === 'direct_payment' && 
+      p.status !== 'FAILED'
+    );
+    const totalPaid = agentPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+    return Math.max(0, (agent.totalEarnings || 0) - totalPaid);
+  };
+
   const filteredAgents = agents.filter(agent => 
     agent.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     agent.email?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -171,12 +181,12 @@ export default function AdminAgentPaymentsPage() {
                     const agent = agents.find(a => a.id === e.target.value);
                     setSelectedAgent(agent);
                   }}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-gray-800"
                 >
-                  <option value="">Choose an agent...</option>
+                  <option value="" className="font-normal">Choose an agent...</option>
                   {filteredAgents.map(agent => (
-                    <option key={agent.id} value={agent.id}>
-                      {agent.name} ({agent.email}) - Current Earnings: Rs. {agent.totalEarnings || 0}
+                    <option key={agent.id} value={agent.id} className="font-bold text-gray-900">
+                      {agent.name} ({agent.email}) - Remaining to Pay: Rs. {getRemainingOwed(agent)}
                     </option>
                   ))}
                 </select>

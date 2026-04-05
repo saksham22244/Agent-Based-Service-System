@@ -96,30 +96,30 @@ export default function AgentManagementPage() {
 
     setIsProcessingPayment(true);
     try {
-      const response = await fetch('/api/admin/agent-direct-payment', {
+      const productId = `direct_payment_${selectedAgent.id}_${Date.now()}`;
+      
+      const esewaRes = await fetch('/api/esewa/initiate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          agentId: selectedAgent.id,
           amount: parseFloat(paymentAmount),
+          productId: productId,
+          userId: selectedAgent.id,
+          type: 'direct_payment',
           note: paymentNote || 'Direct payment from admin'
         })
       });
 
-      if (!response.ok) throw new Error('Payment failed');
+      const esewaData = await esewaRes.json();
 
-      toast.success(`Successfully paid Rs. ${paymentAmount} to ${selectedAgent.name}`);
-      
-      // Reset form and refresh agent data
-      setPaymentAmount('');
-      setPaymentNote('');
-      await handleAgentClick(selectedAgent); // Refresh agent details
-      await fetchAgents(); // Refresh the list cards as well
-      
+      if (esewaData.url) {
+        window.location.href = esewaData.url;
+      } else {
+        throw new Error(esewaData.message || 'Failed to retrieve eSewa payment URL');
+      }
     } catch (error) {
-      console.error('Error processing payment:', error);
-      toast.error('Failed to process payment');
-    } finally {
+      console.error('Error routing to eSewa:', error);
+      toast.error('Failed to initiate eSewa payment');
       setIsProcessingPayment(false);
     }
   };

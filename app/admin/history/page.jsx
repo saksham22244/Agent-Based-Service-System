@@ -6,14 +6,25 @@ import { FaEye, FaTrash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 export default function HistoryPage() {
+  // --- COMPONENT STATE EXPLANATION ---
+  // `applications`: Holds the raw history records downloaded from MongoDB
   const [applications, setApplications] = useState([]);
+  
+  // `servicesMap` & `usersMap`: Used as fast lookup dictionaries. 
+  // Instead of scanning the whole database every time we need a user's name, we can do usersMap[id].name
   const [servicesMap, setServicesMap] = useState({});
   const [usersMap, setUsersMap] = useState({});
   const [agents, setAgents] = useState([]);
+  
+  // Tracks who is explicitly viewing this page (Admin session)
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // `viewedApp`: Stores the specific application object when the Admin clicks the "Eye" icon to read form details
   const [viewedApp, setViewedApp] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Pagination control variables
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -21,25 +32,33 @@ export default function HistoryPage() {
     fetchData();
   }, []);
 
+  // --- DATABASE DOWNLOADING FUNCTION ---
   const fetchData = async () => {
     try {
-      setLoading(true);
+      setLoading(true); // Spin the loading icon
+      
+      // 1. Verify the active session internally
       const userStr = localStorage.getItem('user');
       const currentUserData = userStr ? JSON.parse(userStr) : null;
       setCurrentUser(currentUserData);
-      if (!currentUserData) return;
+      if (!currentUserData) return; // Halt execution if they bypassed login
 
+      // 2. Decide Security Role boundaries (Agents only see their OWN history. Admins see ALL history)
       const appsUrl = currentUserData.role === 'agent' 
         ? `/api/applications?agentId=${currentUserData.id}` 
         : `/api/applications`;
 
+      // 3. Parallel fetching: Download all 4 datasets absolutely simultaneously to minimize loading screen time
       const [servicesRes, usersRes, appsRes, agentsRes] = await Promise.all([
         fetch('/api/admin/services').then(r => r.json()),
         fetch('/api/users').then(r => r.json()), 
-        fetch(appsUrl).then(r => r.json()),
+        fetch(appsUrl).then(r => r.json()), // Uses our dynamic URL from step 2
         fetch('/api/agents').then(r => r.json())
       ]);
 
+      // 4. Optimization: Convert Lists into Dictionaries (HashMaps)
+      // This is crucial for rendering speed! Finding a user's name by ID normally loops an entire array.
+      // Dictionaries allow instant lookups O(1) time complexity.
       const sMap = {};
       (servicesRes.services || []).forEach(s => { sMap[s.id] = s; });
       setServicesMap(sMap);
@@ -48,6 +67,7 @@ export default function HistoryPage() {
       (usersRes || []).forEach(u => { uMap[u.id] = u; });
       setUsersMap(uMap);
 
+      // Save arrays to state
       setApplications(appsRes || []);
       setAgents(agentsRes || []);
     } catch (err) {
@@ -70,12 +90,19 @@ export default function HistoryPage() {
     }
   };
 
+  // --- LOCAL SEARCH BAR LOGIC ---
+  // React calculates this filter logic in real-time as the Admin types globally without calling the DB again.
   const filteredApps = applications.filter(app => {
-    if (app.status !== 'work_completed') return false;
+    // Security Rule: The 'History' page ONLY formats apps that are officially completed!
+    if (app.status !== 'work_completed') return false; 
+    
+    // Grab the related reference names using our HashMaps
     const svc = servicesMap[app.serviceId]?.name || '';
     const usr = usersMap[app.userId];
     const uName = usr?.name || '';
-    const tkId = app.id.slice(-8);
+    const tkId = app.id.slice(-8); // Generate an 8-character visually pleasing tracking ID string
+    
+    // Check if the user's typed string matches ANY parameter globally
     const q = searchQuery.toLowerCase();
     return svc.toLowerCase().includes(q) || uName.toLowerCase().includes(q) || tkId.toLowerCase().includes(q) || !searchQuery;
   });

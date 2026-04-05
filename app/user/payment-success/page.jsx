@@ -9,9 +9,17 @@ function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const data = searchParams.get('data');
   const [status, setStatus] = useState('verifying'); // 'verifying' | 'success' | 'error'
+  const [userRole, setUserRole] = useState('user');
   const router = useRouter();
 
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setUserRole(JSON.parse(userStr).role);
+      } catch (e) {}
+    }
+
     if (data) {
       try {
         // eSewa sends Base64 encoded JSON in the 'data' query parameter
@@ -71,12 +79,20 @@ function PaymentSuccessContent() {
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
             <h2 className="text-2xl font-black text-gray-800 tracking-tight">Payment Successful!</h2>
             <p className="mt-3 text-gray-500 leading-relaxed font-medium">
-              Your transaction was fully verified. Your application has been dispatched and is now waiting for Agent review!
+              {userRole === 'admin' || userRole === 'superadmin' 
+                ? "Transaction was fully verified. The agent's total paid balance has been updated successfully!"
+                : "Your transaction was fully verified. Your application has been dispatched and is now waiting for Agent review!"}
             </p>
             <div className="mt-8 shadow-sm">
-                <Link href="/user/applications" className="w-full inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md text-lg">
-                  View My Applications
-                </Link>
+                {userRole === 'admin' || userRole === 'superadmin' ? (
+                  <Link href="/admin/agent-payments" className="w-full inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md text-lg">
+                    Return to Payments Dashboard
+                  </Link>
+                ) : (
+                  <Link href="/user/applications" className="w-full inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md text-lg">
+                    View My Applications
+                  </Link>
+                )}
             </div>
           </div>
         )}
@@ -89,7 +105,10 @@ function PaymentSuccessContent() {
               We couldn't verify this payment record automatically. It may still be processing or it has failed in eSewa's system.
             </p>
             <button 
-               onClick={() => router.push('/user/services')}
+               onClick={() => {
+                 if (userRole === 'admin' || userRole === 'superadmin') router.push('/admin/agent-payments');
+                 else router.push('/user/services');
+               }}
                className="mt-8 w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3.5 rounded-xl transition-colors"
             >
               Return Home
