@@ -17,18 +17,20 @@ export default function LoginPage() {
   const [googleData, setGoogleData] = useState(null);
   const [googleRole, setGoogleRole] = useState('user'); // default selection
 
-  // Replace with your new image URL
+  //image URL for  login page
   const heroImageSrc = 'https://drive.google.com/uc?export=view&id=12ejbUJxqDC8cGp3t9ZJriA42Yh1j7E0K';
 
-  // Keep the logo if you want, or replace it too
+  // Logo Url
   const logoSrc = 'https://drive.google.com/uc?export=view&id=1Dq2CNVPgjj7-5si_GoT7xkEpXYwT57gy';
 
+  // Handles standard email/password login submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevents default form submission (page reload)
     setError('');
     setSubmitting(true);
 
     try {
+      // Calls the custom backend API route we analyzed earlier
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,24 +40,26 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store token and user data
+        // IMPORTANT VIVA KNOWLEDGE: This is where session state is persisted locally.
+        // It saves the returned user data (and token if available) to localStorage.
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
 
         toast.success('Login successfully!');
 
-        // Check user role and redirect accordingly
+        // Role-based routing: redirects users based on their assigned role
         if (data.user.role === 'admin' || data.user.role === 'superadmin') {
-          router.push('/admin');  // Admin goes to admin panel
+          router.push('/admin');  // Admin goes to admin dashboard
         } else if (data.user.role === 'user') {
-          router.push('/user');  // Regular user goes to /user
+          router.push('/user');  // Regular user goes to user dashboard
         } else if (data.user.role === 'agent') {
-          router.push('/agent');  // Agent goes to /agent
+          router.push('/agent');  // Agent goes to agent dashboard
         } else {
           // Default fallback
           router.push('/user');
         }
       } else {
+        // Custom error handling for Agents not yet approved by Admin
         if (data.error === 'PENDING_APPROVAL') {
           router.push('/agent/pending-approval');
         } else {
@@ -69,12 +73,15 @@ export default function LoginPage() {
     }
   };
 
+  // Handles successful authentication via Google OAuth
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       if (!credentialResponse.credential) {
         setError('Google login failed, no credential received.');
         return;
       }
+
+      // Sends the Google-provided token to our backend for verification
       const response = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,21 +90,25 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // If Google Auth succeeds but it's a first-time login
         if (data.status === 'NEW_USER') {
-          // Open role selector modal
+          // Open role selector modal (User vs Agent) before finishing signup
           setGoogleData(data.googleData);
           setShowRoleModal(true);
         } else {
-          // Success login
+          // Success login for an existing Google-linked account
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
           toast.success('Login successfully!');
+
+          // Role-based routing
           if (data.user.role === 'admin' || data.user.role === 'superadmin') router.push('/admin');
           else if (data.user.role === 'user') router.push('/user');
           else if (data.user.role === 'agent') router.push('/agent');
           else router.push('/user');
         }
       } else {
+        // Handles Agent pending approval status
         if (data.error === 'PENDING_APPROVAL') {
           router.push('/agent/pending-approval');
         } else {
