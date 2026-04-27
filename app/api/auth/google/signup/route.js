@@ -39,11 +39,18 @@ export async function POST(request) {
 
       const user = await userDb.create(newUser);
 
+      const jwt = require('jsonwebtoken');
+      const token = jwt.sign(
+        { userId: user._id, email: user.email, role: 'user' },
+        process.env.NEXTAUTH_SECRET || 'fallback-secret-key',
+        { expiresIn: '1d' }
+      );
+
       return NextResponse.json({
         message: 'Signup successful',
         status: 'SUCCESS',
         user: { ...user, role: 'user' },
-        token: 'google-auth-token-' + Date.now(),
+        token,
       });
     } else if (role === 'agent') {
       newUser = {

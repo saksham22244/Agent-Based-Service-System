@@ -38,10 +38,18 @@ export async function POST(request) {
       );
     }
 
-    // In production, set proper session cookies or JWT tokens
+    // If match then login successfully
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { userId: session.user._id, email: session.user.email, role: session.user.role },
+      process.env.NEXTAUTH_SECRET || 'fallback-secret-key',
+      { expiresIn: '1d' }
+    );
+
     return NextResponse.json({
       message: 'Login successful',
       user: session.user,
+      token,
     });
   } catch (error) {
     console.error('Login error:', error);

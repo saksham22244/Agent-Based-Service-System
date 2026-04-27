@@ -142,6 +142,9 @@ export default function SignupPage() {
           email: otpData.formData.email,
           role: 'user',
         }));
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
 
         // Close modal first
         setShowOtpModal(false);

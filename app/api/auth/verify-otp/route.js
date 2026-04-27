@@ -93,6 +93,16 @@ export async function POST(request) {
     // Delete the used OTP
     await otpDb.delete(userId, 'registration');
 
+    let token = undefined;
+    if (autoLogin) {
+      const jwt = require('jsonwebtoken');
+      token = jwt.sign(
+        { userId: updatedUser._id, email: updatedUser.email, role: 'user' },
+        process.env.NEXTAUTH_SECRET || 'fallback-secret-key',
+        { expiresIn: '1d' }
+      );
+    }
+
     return NextResponse.json({
       status: 'VERIFIED',
       message: type === 'agent' 
@@ -102,6 +112,7 @@ export async function POST(request) {
       type: type || 'user',
       autoLogin, // Only true for users, false for agents
       success: true,
+      token,
     });
   } catch (error) {
     console.error('Error verifying OTP:', error);

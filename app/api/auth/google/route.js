@@ -49,11 +49,18 @@ export async function POST(request) {
          user.verified = true;
       }
 
+      const jwt = require('jsonwebtoken');
+      const token = jwt.sign(
+        { userId: user._id, email: user.email, role: user.role || 'user' },
+        process.env.NEXTAUTH_SECRET || 'fallback-secret-key',
+        { expiresIn: '1d' }
+      );
+
       return NextResponse.json({
         status: 'SUCCESS',
         message: 'Login successful',
         user,
-        token: 'google-auth-token-' + Date.now(), // standard dummy token for the app's structure
+        token,
       });
     }
 

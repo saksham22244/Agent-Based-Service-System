@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Fyp Agent Based Service System",
+  title: "Agent Based Service System",
   description: "Agent Based Service System - Super Admin Dashboard",
 };
 
