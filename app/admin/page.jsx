@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FaEye, FaTrash, FaCheck, FaTimes, FaSearch, FaUser, FaUserTie, FaPlus, FaFilter, FaBullhorn } from 'react-icons/fa';
 import Sidebar from '@/components/Sidebar';
 import Image from 'next/image';
 import UserForm from '@/components/UserForm';
 import AgentForm from '@/components/AgentForm';
 import NoticeForm from '@/components/NoticeForm';
+import { toast } from 'react-toastify';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -23,7 +25,7 @@ export default function DashboardPage() {
   const [users, setUsers] = useState([]);
   const [agents, setAgents] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Reduced strictly to perfectly fit viewport with more padding
+  const itemsPerPage = 9; // Reduced strictly to perfectly fit viewport with more padding
 
   useEffect(() => {
     fetchData();
@@ -72,7 +74,7 @@ export default function DashboardPage() {
 
     // Prevent deleting super admin
     if (type === 'user' && item && item.email === 'admin@example.com') {
-      alert('Cannot delete super admin user!');
+      toast.error('Cannot delete super admin user!');
       return;
     }
 
@@ -108,16 +110,16 @@ export default function DashboardPage() {
 
       if (response.ok) {
         console.log('Delete successful, refreshing data...');
-        alert('Successfully deleted!');
+        toast.success('Successfully deleted!');
         await fetchData();
       } else {
         const errorMessage = data.error || data.message || 'Unknown error';
-        alert(`Failed to delete: ${errorMessage}`);
+        toast.error(`Failed to delete: ${errorMessage}`);
         console.error('Delete failed:', data);
       }
     } catch (error) {
       console.error('Error deleting:', error);
-      alert(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -145,12 +147,13 @@ export default function DashboardPage() {
 
       if (response.ok) {
         await fetchData();
+        toast.success('Agent approved successfully!');
       } else {
-        alert('Failed to approve agent');
+        toast.error('Failed to approve agent');
       }
     } catch (error) {
       console.error('Error approving agent:', error);
-      alert('An error occurred while approving agent');
+      toast.error('An error occurred while approving agent');
     }
   };
 
@@ -171,14 +174,14 @@ export default function DashboardPage() {
 
       if (response.ok) {
         setAddUserModal(false);
-        alert('User created successfully!');
+        toast.success('User created successfully!');
         await fetchData();
       } else {
-        alert(data.error || 'Failed to create user');
+        toast.error(data.error || 'Failed to create user');
       }
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('An error occurred while creating user');
+      toast.error('An error occurred while creating user');
     }
   };
 
@@ -196,14 +199,14 @@ export default function DashboardPage() {
 
       if (response.ok) {
         setAddAgentModal(false);
-        alert('Agent created and approved successfully!');
+        toast.success('Agent created and approved successfully!');
         await fetchData();
       } else {
-        alert(data.error || 'Failed to create agent');
+        toast.error(data.error || 'Failed to create agent');
       }
     } catch (error) {
       console.error('Error creating agent:', error);
-      alert('An error occurred while creating agent');
+      toast.error('An error occurred while creating agent');
     }
   };
 
@@ -220,13 +223,13 @@ export default function DashboardPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert(`Notice sent successfully! ${data.successCount} recipients notified.`);
+        toast.success(`Notice sent successfully! ${data.successCount} recipients notified.`);
       } else {
-        alert(data.error || 'Failed to send notice');
+        toast.error(data.error || 'Failed to send notice');
       }
     } catch (error) {
       console.error('Error sending notice:', error);
-      alert('An error occurred while sending notice');
+      toast.error('An error occurred while sending notice');
     }
   };
 
@@ -370,7 +373,7 @@ export default function DashboardPage() {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs w-full sm:w-auto max-w-xs"
+                  className="px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs w-full sm:w-auto max-w-xs text-gray-900 placeholder-gray-500"
                 />
                 <button className="p-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-shrink-0">
                   <svg

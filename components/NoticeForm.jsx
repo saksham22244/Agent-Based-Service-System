@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'react-toastify';
 
 export default function NoticeForm({ onClose, onSubmit, users = [], agents = [] }) {
   const [formData, setFormData] = useState({
@@ -30,7 +31,7 @@ export default function NoticeForm({ onClose, onSubmit, users = [], agents = [] 
       onClose();
     } catch (error) {
       console.error('Error sending notice:', error);
-      alert('Failed to send notice: ' + error.message);
+      toast.error('Failed to send notice: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -63,7 +64,7 @@ export default function NoticeForm({ onClose, onSubmit, users = [], agents = [] 
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium"
               placeholder="Enter notice title"
             />
           </div>
@@ -79,7 +80,7 @@ export default function NoticeForm({ onClose, onSubmit, users = [], agents = [] 
               onChange={handleChange}
               required
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 font-medium"
               placeholder="Enter notice message"
             />
           </div>
@@ -93,7 +94,7 @@ export default function NoticeForm({ onClose, onSubmit, users = [], agents = [] 
               name="recipientType"
               value={formData.recipientType}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium"
             >
               <option value="user">Users</option>
               <option value="agent">Agents</option>
@@ -109,7 +110,7 @@ export default function NoticeForm({ onClose, onSubmit, users = [], agents = [] 
               name="recipients"
               value={formData.recipients}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium"
             >
               <option value="all">All {formData.recipientType === 'user' ? 'Users' : 'Agents'}</option>
               {formData.recipientType === 'user' && users.map(user => (
@@ -134,7 +135,7 @@ export default function NoticeForm({ onClose, onSubmit, users = [], agents = [] 
               name="priority"
               value={formData.priority}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium"
             >
               <option value="low">Low</option>
               <option value="normal">Normal</option>

@@ -47,17 +47,20 @@ export default function LoginPage() {
 
         toast.success('Login successfully!');
 
-        // Role-based routing: redirects users based on their assigned role
-        if (data.user.role === 'admin' || data.user.role === 'superadmin') {
-          router.push('/admin');  // Admin goes to admin dashboard
-        } else if (data.user.role === 'user') {
-          router.push('/user');  // Regular user goes to user dashboard
-        } else if (data.user.role === 'agent') {
-          router.push('/agent');  // Agent goes to agent dashboard
-        } else {
-          // Default fallback
-          router.push('/user');
-        }
+        // Delay redirect so the toast notification can be seen by the user
+        setTimeout(() => {
+          // Role-based routing: redirects users based on their assigned role
+          if (data.user.role === 'admin' || data.user.role === 'superadmin') {
+            router.push('/admin');  // Admin goes to admin dashboard
+          } else if (data.user.role === 'user') {
+            router.push('/user');  // Regular user goes to user dashboard
+          } else if (data.user.role === 'agent') {
+            router.push('/agent');  // Agent goes to agent dashboard
+          } else {
+            // Default fallback
+            router.push('/user');
+          }
+        }, 1500);
       } else {
         // Custom error handling for Agents not yet approved by Admin
         if (data.error === 'PENDING_APPROVAL') {
@@ -101,11 +104,14 @@ export default function LoginPage() {
           localStorage.setItem('user', JSON.stringify(data.user));
           toast.success('Login successfully!');
 
-          // Role-based routing
-          if (data.user.role === 'admin' || data.user.role === 'superadmin') router.push('/admin');
-          else if (data.user.role === 'user') router.push('/user');
-          else if (data.user.role === 'agent') router.push('/agent');
-          else router.push('/user');
+          // Delay redirect so the toast notification can be seen by the user
+          setTimeout(() => {
+            // Role-based routing
+            if (data.user.role === 'admin' || data.user.role === 'superadmin') router.push('/admin');
+            else if (data.user.role === 'user') router.push('/user');
+            else if (data.user.role === 'agent') router.push('/agent');
+            else router.push('/user');
+          }, 1500);
         }
       } else {
         // Handles Agent pending approval status

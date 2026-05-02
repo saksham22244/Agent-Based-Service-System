@@ -210,7 +210,7 @@ export default function AgentManagementPage() {
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     placeholder="Enter amount"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
                     min="0"
                     step="0.01"
                   />
@@ -222,7 +222,7 @@ export default function AgentManagementPage() {
                     value={paymentNote}
                     onChange={(e) => setPaymentNote(e.target.value)}
                     placeholder="Payment description"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
                   />
                 </div>
                 <div className="flex items-end">
@@ -361,50 +361,50 @@ export default function AgentManagementPage() {
               <p className="text-slate-500 mt-6 font-medium">Loading agents...</p>
             </div>
           ) : filteredAgents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-              {paginatedAgents.map((agent) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedAgents.map((agent, index) => (
                 <div
                   key={agent.id}
                   onClick={() => handleAgentClick(agent)}
-                  className="bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 p-7 cursor-pointer hover:shadow-2xl hover:border-indigo-100 hover:-translate-y-1.5 transition-all duration-300 group"
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
                 >
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-14 h-14 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:from-indigo-100 group-hover:to-blue-100 transition-all duration-300 shadow-sm border border-indigo-50/50 overflow-hidden">
-                      {agent.profilePicture || agent.photoUrl ? (
-                         <img src={agent.profilePicture || agent.photoUrl} alt={agent.name} className="w-full h-full object-cover" />
-                      ) : (
-                         <FaUser className="text-indigo-500 text-xl drop-shadow-sm" />
-                      )}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border border-gray-200">
+                        {agent.profilePicture || agent.photoUrl ? (
+                           <img src={agent.profilePicture || agent.photoUrl} alt={agent.name} className="w-full h-full object-cover" />
+                        ) : (
+                           <FaUser className="text-gray-400 text-xl" />
+                        )}
+                      </div>
                     </div>
-                    <span className="bg-emerald-50 text-emerald-600 border border-emerald-100/50 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                    <span className="bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-semibold">
                       Active
                     </span>
                   </div>
                   
-                  <h3 className="text-xl font-bold text-slate-800 mb-1 group-hover:text-indigo-600 transition-colors drop-shadow-sm">{agent.name}</h3>
-                  <p className="text-sm text-slate-400 font-medium mb-7 truncate">{agent.email}</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">{agent.name}</h3>
+                  <p className="text-sm text-gray-500 mb-6 truncate">{agent.email}</p>
                   
-                  <div className="space-y-2 bg-slate-50/50 rounded-xl p-4 border border-slate-50 mb-7">
-                    <div className="flex justify-between items-center text-sm p-1">
-                      <span className="text-slate-500 font-medium">Gross Earnings</span>
-                      <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100/50">Rs. {agent.totalEarnings || 0}</span>
+                  <div className="space-y-3 mb-6">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">Gross Earnings</span>
+                      <span className="font-semibold text-gray-900">Rs. {agent.totalEarnings || 0}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm p-1">
-                      <span className="text-slate-500 font-medium">Paid by Admin</span>
-                      <span className="font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100/50">Rs. {agent.totalPaid || 0}</span>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">Paid by Admin</span>
+                      <span className="font-semibold text-gray-900">Rs. {agent.totalPaid || 0}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm p-1 border-t border-slate-200/60 mt-1 pt-3">
-                      <span className="text-slate-700 font-bold">Pending Owed</span>
-                      <span className="font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-md border border-red-100/50">Rs. {Math.max(0, (agent.totalEarnings || 0) - (agent.totalPaid || 0))}</span>
+                    <div className="flex justify-between items-center text-sm pt-3 border-t border-gray-100">
+                      <span className="font-medium text-gray-900">Pending Owed</span>
+                      <span className="font-bold text-red-600">Rs. {Math.max(0, (agent.totalEarnings || 0) - (agent.totalPaid || 0))}</span>
                     </div>
                   </div>
                   
-                  <div className="pt-2 border-t border-slate-100">
-                    <button className="w-full text-indigo-600 bg-indigo-50/50 group-hover:text-white group-hover:bg-indigo-600 font-semibold text-sm flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 shadow-sm group-hover:shadow-[0_4px_14px_0_rgba(99,102,241,0.39)]">
-                      <FaHistory className="group-hover:-rotate-12 transition-transform duration-300" />
-                      View Payment History
-                    </button>
-                  </div>
+                  <button className="w-full text-blue-600 bg-blue-50 hover:bg-blue-100 font-medium text-sm py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2">
+                    <FaHistory />
+                    View Payment History
+                  </button>
                 </div>
               ))}
             </div>
@@ -419,19 +419,19 @@ export default function AgentManagementPage() {
           )}
 
           {/* Pagination Controls */}
-          {!loading && totalPages > 1 && (
-            <div className="mt-10 flex items-center justify-end gap-2">
-              <span className="text-sm font-medium text-slate-500 mr-2">Show</span>
+          {!loading && totalPages > 0 && (
+            <div className="mt-8 flex justify-center items-center gap-2">
+              <span className="text-sm font-medium text-gray-500 mr-2">Page:</span>
               {Array.from({ length: totalPages }).map((_, i) => {
                 const pageNumber = i + 1;
                 return (
                   <button
                     key={pageNumber}
                     onClick={() => setCurrentPage(pageNumber)}
-                    className={`min-w-[36px] h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-all duration-200 ${
+                    className={`min-w-[40px] h-10 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
                       safeCurrentPage === pageNumber
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     {pageNumber}

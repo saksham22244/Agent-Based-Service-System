@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { toast } from 'react-toastify';
 
 export default function AgentSignupPage() {
   const router = useRouter();
@@ -88,10 +89,12 @@ export default function AgentSignupPage() {
       }));
 
       // Show success message
-      alert('Email verified successfully! Your account is pending admin approval.');
+      toast.success('Email verified successfully! Your account is pending admin approval.');
 
       // Redirect to login page (agent needs admin approval)
-      router.push('/login');
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
     } catch (err) {
       console.error('Error verifying OTP:', err);
       setOtpError('An error occurred. Please try again.');

@@ -11,6 +11,7 @@ export default function ServicePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const [newService, setNewService] = useState({ 
     name: '', 
@@ -193,10 +194,13 @@ export default function ServicePage() {
     }
   };
 
-  const handleRemoveService = async (id) => {
-    if (!window.confirm('Are you sure you want to remove this service?')) {
-      return;
-    }
+  const handleRemoveService = (id) => {
+    setDeleteConfirmId(id);
+  };
+
+  const confirmRemoveService = async () => {
+    if (!deleteConfirmId) return;
+    const id = deleteConfirmId;
 
     try {
       setError('');
@@ -216,6 +220,8 @@ export default function ServicePage() {
       console.error('Error deleting service:', err);
       setError(err.message || 'Failed to delete service. Please try again.');
       toast.error(err.message || 'Failed to delete service. Please try again.');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -356,7 +362,7 @@ export default function ServicePage() {
                       placeholder="Filter services by name..." 
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-gray-900 placeholder-gray-500"
                     />
                     <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -819,6 +825,31 @@ export default function ServicePage() {
                   </button>
                 </div>
               </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Deletion</h3>
+              <p className="text-gray-500 text-sm">Are you sure you want to permanently remove this service? This action cannot be undone.</p>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+              <button 
+                onClick={() => setDeleteConfirmId(null)} 
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmRemoveService} 
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+              >
+                Remove Service
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -11,6 +11,8 @@ export default function UserNoticesPage() {
   const router = useRouter();
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [noticeToDelete, setNoticeToDelete] = useState(null);
+  const [isDeletingNotice, setIsDeletingNotice] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -63,18 +65,17 @@ export default function UserNoticesPage() {
     }
   };
 
-  const handleDeleteNotice = async (noticeId) => {
-    if (!window.confirm('Securely remove this notice transmission from your personal node? This action cannot be reversed.')) {
-      return;
-    }
-
+  const confirmDeleteNotice = async () => {
+    if (!noticeToDelete) return;
+    
+    setIsDeletingNotice(true);
     try {
-      const response = await fetch(`/api/notices/${noticeId}`, {
+      const response = await fetch(`/api/notices/${noticeToDelete}`, {
         method: 'DELETE',
       });
       
       if (response.ok) {
-        setNotices(notices.filter(n => n.id !== noticeId));
+        setNotices(notices.filter(n => n.id !== noticeToDelete));
         toast.success('Notice securely deleted');
       } else {
         toast.error('Deletion failed');
@@ -82,6 +83,9 @@ export default function UserNoticesPage() {
     } catch (error) {
       console.error('Error deleting notice:', error);
       toast.error('An error occurred during deletion');
+    } finally {
+      setIsDeletingNotice(false);
+      setNoticeToDelete(null);
     }
   };
 
@@ -124,49 +128,49 @@ export default function UserNoticesPage() {
             {notices.map((notice) => (
               <div
                 key={notice.id}
-                className={`bg-white border-2 rounded-2xl p-6 transition-all ${
-                  notice.read ? 'border-gray-200 opacity-80 bg-gray-50/50' : 'border-[#5C5470]/30 shadow-lg shadow-[#5C5470]/5 hover:border-[#5C5470]/60'
+                className={`bg-white border rounded-xl p-6 transition-all ${
+                  notice.read ? 'border-gray-200 opacity-75 bg-gray-50/30' : 'border-blue-200 shadow-sm shadow-blue-50 hover:border-blue-300'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                   <div className="flex-1 w-full">
                     <div className="flex flex-wrap items-center gap-3 mb-3">
-                      <h4 className="text-xl font-black text-gray-900">{notice.title}</h4>
-                      <span className={`px-3 py-1 rounded-md text-xs font-black tracking-widest border ${getPriorityColor(notice.priority)}`}>
+                      <h4 className="text-xl font-bold text-gray-900">{notice.title}</h4>
+                      <span className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${getPriorityColor(notice.priority)}`}>
                         {notice.priority?.toUpperCase() || 'NORMAL'}
                       </span>
                       {!notice.read && (
-                        <span className="px-3 py-1 bg-red-500 text-white rounded-md text-xs font-black shadow-sm tracking-widest animate-pulse">
-                          ACTION REQUIRED
+                        <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-semibold shadow-sm">
+                          New
                         </span>
                       )}
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 font-medium text-gray-700 text-base leading-relaxed mb-4">
+                    <div className="text-gray-700 font-medium text-base leading-relaxed mb-4">
                       {notice.message}
                     </div>
-                    <div className="flex items-center gap-4 text-xs font-bold text-gray-400 tracking-wide uppercase">
-                      <span>Log Time: {new Date(notice.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    <div className="flex items-center gap-4 text-xs font-medium text-gray-500">
+                      <span>{new Date(notice.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       {notice.readAt && (
                         <span className="text-green-600 flex items-center gap-1">
-                          ✓ Verified at {new Date(notice.readAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          ✓ Read at {new Date(notice.readAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className="shrink-0 pt-1 flex flex-col gap-3">
+                  <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0 pt-1">
                     {!notice.read && (
                       <button
                         onClick={() => handleMarkAsRead(notice.id)}
-                        className="w-full sm:w-auto px-6 py-3 bg-[#5C5470] text-white text-sm font-black tracking-wider rounded-xl hover:bg-[#48425C] hover:scale-105 transition-all shadow-md active:scale-95"
+                        className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                       >
-                        Acknowledge receipt
+                        Mark as Read
                       </button>
                     )}
                     <button
-                      onClick={() => handleDeleteNotice(notice.id)}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-red-50 text-red-600 text-[10px] font-black tracking-widest rounded-xl hover:bg-red-100 transition-all border border-red-100 uppercase"
+                      onClick={() => setNoticeToDelete(notice.id)}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-sm font-semibold rounded-lg hover:bg-red-100 transition-colors border border-red-100"
                     >
-                      <FaTrashAlt />
+                      <FaTrashAlt className="w-3.5 h-3.5" />
                       Delete
                     </button>
                   </div>
@@ -177,6 +181,40 @@ export default function UserNoticesPage() {
         )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {noticeToDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 bg-red-50 rounded-full mb-4 mx-auto">
+                <FaTrashAlt className="w-5 h-5 text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-center text-gray-900 mb-2">Delete Notice</h3>
+              <p className="text-center text-gray-500 text-sm mb-6">
+                Are you sure you want to remove this notice?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setNoticeToDelete(null)}
+                  disabled={isDeletingNotice}
+                  className="flex-1 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors border border-gray-200 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteNotice}
+                  disabled={isDeletingNotice}
+                  className="flex-1 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium rounded-lg transition-colors border border-red-100 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isDeletingNotice ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );

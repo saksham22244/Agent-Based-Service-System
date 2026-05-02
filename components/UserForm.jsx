@@ -28,7 +28,7 @@ export default function UserForm({ onSubmit, onCancel, initialData }) {
           required
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border text-gray-900 font-medium"
         />
       </div>
 
@@ -42,7 +42,7 @@ export default function UserForm({ onSubmit, onCancel, initialData }) {
           required
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border text-gray-900 font-medium"
         />
       </div>
 
@@ -56,7 +56,7 @@ export default function UserForm({ onSubmit, onCancel, initialData }) {
           required
           value={formData.phoneNumber}
           onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border text-gray-900 font-medium"
         />
       </div>
 
@@ -70,7 +70,7 @@ export default function UserForm({ onSubmit, onCancel, initialData }) {
           value={formData.address}
           onChange={(e) => setFormData({ ...formData, address: e.target.value })}
           rows={3}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border text-gray-900 font-medium"
         />
       </div>
 
@@ -82,7 +82,7 @@ export default function UserForm({ onSubmit, onCancel, initialData }) {
           id="role"
           value={formData.role}
           onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border text-gray-900 font-medium"
         >
           <option value="user">User</option>
           <option value="admin">Admin</option>

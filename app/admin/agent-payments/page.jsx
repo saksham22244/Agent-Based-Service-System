@@ -201,7 +201,7 @@ export default function AdminAgentPaymentsPage() {
                   placeholder="Enter amount"
                   min="0"
                   step="0.01"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
                 />
               </div>
               
@@ -212,7 +212,7 @@ export default function AdminAgentPaymentsPage() {
                   value={paymentNote}
                   onChange={(e) => setPaymentNote(e.target.value)}
                   placeholder="Payment description or note"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
                 />
               </div>
             </div>
@@ -248,7 +248,7 @@ export default function AdminAgentPaymentsPage() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
               />
             </div>
           </div>

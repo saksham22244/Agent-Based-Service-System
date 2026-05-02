@@ -24,6 +24,9 @@ export default function HistoryPage() {
   const [viewedApp, setViewedApp] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Custom confirm modal state for deletion
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  
   // Pagination control variables
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -77,16 +80,18 @@ export default function HistoryPage() {
     }
   };
 
-  const handleDeleteApplication = async (id) => {
-    if (!window.confirm('Delete this record permanently?')) return;
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
     try {
-      const res = await fetch(`/api/applications/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/applications/${deleteConfirmId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Deletion failed');
-      setApplications(prev => prev.filter(a => a.id !== id));
-      if (viewedApp?.id === id) setViewedApp(null);
+      setApplications(prev => prev.filter(a => a.id !== deleteConfirmId));
+      if (viewedApp?.id === deleteConfirmId) setViewedApp(null);
       toast.success('Record deleted.');
     } catch (err) {
       toast.error('Failed to delete.');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -127,7 +132,7 @@ export default function HistoryPage() {
                 placeholder="Search by ticket or name..." 
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="border border-gray-200 rounded-lg px-4 py-2 text-sm outline-none focus:ring-1 focus:ring-gray-400 w-full md:w-64"
+                className="border border-gray-200 rounded-lg px-4 py-2 text-sm outline-none focus:ring-1 focus:ring-gray-400 w-full md:w-64 text-gray-900 bg-white placeholder-gray-500"
               />
             </div>
 
@@ -138,33 +143,33 @@ export default function HistoryPage() {
                 <p className="text-gray-400 font-medium text-sm">No completed tasks found.</p>
               </div>
             ) : (
-              <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                <table className="min-w-full divide-y divide-gray-100">
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">Service & ID</th>
-                      <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">Applicant</th>
-                      <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase tracking-wider">Actions</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Service & ID</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Applicant</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-4 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50 bg-white">
+                  <tbody className="divide-y divide-gray-100 bg-white">
                     {paginatedApps.map((app) => (
-                      <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
+                      <tr key={app.id} className="hover:bg-blue-50/50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="text-sm font-semibold text-gray-800">{servicesMap[app.serviceId]?.name.replace('\n', ' ')}</div>
-                          <div className="text-[10px] text-gray-400 mt-0.5 font-mono">#{app.id.slice(-8).toUpperCase()}</div>
+                          <div className="text-sm font-bold text-gray-900">{servicesMap[app.serviceId]?.name.replace('\n', ' ')}</div>
+                          <div className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 w-max font-mono mt-1">#{app.id.slice(-8).toUpperCase()}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-xs font-medium text-gray-700">{usersMap[app.userId]?.name}</div>
+                          <div className="text-sm font-semibold text-gray-800">{usersMap[app.userId]?.name}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-[11px] text-gray-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
                           {new Date(app.updatedAt || app.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2 text-xs">
-                             <button onClick={() => setViewedApp(app)} className="p-2 text-gray-400 hover:text-blue-600 transition-colors"><FaEye /></button>
-                             <button onClick={() => handleDeleteApplication(app.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors"><FaTrash /></button>
+                             <button onClick={() => setViewedApp(app)} className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100 shadow-sm" title="View"><FaEye className="w-4 h-4" /></button>
+                             <button onClick={() => setDeleteConfirmId(app.id)} className="p-2 text-red-500 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-lg transition-colors border border-red-100 shadow-sm" title="Delete"><FaTrash className="w-4 h-4" /></button>
                           </div>
                         </td>
                       </tr>
@@ -215,7 +220,17 @@ export default function HistoryPage() {
                   {Object.entries(viewedApp.formData || {}).map(([k, v]) => (
                     <div key={k} className="border-b border-gray-100 last:border-0 pb-2 mb-2 last:pb-0 last:mb-0">
                       <p className="text-[10px] text-gray-500 font-bold capitalize">{k.replace(/([A-Z])/g, ' $1')}</p>
-                      <p className="text-xs text-gray-800 font-medium">{String(v)}</p>
+                      {typeof v === 'string' && v.includes('/uploads/applications/') ? (
+                        <div className="mt-1 flex items-center gap-4">
+                          <img src={v} alt={k} className="max-w-[70%] h-32 object-contain rounded-md border border-gray-200" />
+                          <div className="flex flex-col gap-2">
+                            <a href={v} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md text-xs font-semibold transition-colors border border-blue-100">Open full size</a>
+                            <a href={v} download={v.split('/').pop() || 'document'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-md text-xs font-semibold transition-colors border border-green-100">Download</a>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-800 font-medium">{String(v)}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -223,6 +238,31 @@ export default function HistoryPage() {
             </div>
             <div className="px-6 py-4 bg-gray-50 text-right">
               <button onClick={() => setViewedApp(null)} className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Deletion</h3>
+              <p className="text-gray-500 text-sm">Are you sure you want to permanently delete this record? This action cannot be undone.</p>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+              <button 
+                onClick={() => setDeleteConfirmId(null)} 
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDelete} 
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+              >
+                Delete Record
+              </button>
             </div>
           </div>
         </div>

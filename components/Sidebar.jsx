@@ -64,7 +64,7 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-[#5C5470] min-h-screen flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.1)] flex-shrink-0 z-[100] relative rounded-r-xl">
+    <div className="w-64 bg-[#5C5470] h-screen sticky top-0 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.1)] flex-shrink-0 z-[100] rounded-r-xl">
       {/* Logo Section */}
       <div className="p-8 flex flex-col items-center border-b border-white/5">
         <div className="w-24 h-24 rounded-full bg-blue-500 shadow-inner flex items-center justify-center mb-4">

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { toast } from 'react-toastify';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -153,11 +154,13 @@ export default function SignupPage() {
         setVerifying(false);
 
         // Show success message briefly then redirect
-        alert('Email verified successfully! Account created.');
+        toast.success('Email verified successfully! Account created.');
 
         // Use window.location for more reliable redirect
         console.log('Redirecting to /user page...');
-        window.location.href = '/user';
+        setTimeout(() => {
+          window.location.href = '/user';
+        }, 1500);
       } else {
         // Verification failed
         console.error('OTP verification failed:', data);
