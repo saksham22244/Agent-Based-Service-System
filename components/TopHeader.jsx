@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaBell, FaUserCircle, FaSearch, FaTimes, FaCamera } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -17,17 +17,40 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
     address: user?.address || '',
   });
 
+  const [notices, setNotices] = useState([]);
+  const [showNoticesDropdown, setShowNoticesDropdown] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotices();
+    }
+  }, [user?.id]);
+
+  const fetchNotices = async () => {
+    try {
+      const endpoint = user.role === 'agent' 
+        ? `/api/agents/${user.id}/notices` 
+        : `/api/users/${user.id}/notices`;
+      const res = await fetch(endpoint);
+      if (res.ok) {
+        const data = await res.json();
+        const fetchedNotices = data.notices || [];
+        setNotices(fetchedNotices);
+        setUnreadCount(fetchedNotices.filter(n => !n.read).length);
+      }
+    } catch (error) {
+      console.error('Error fetching notices in TopHeader:', error);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     router.push('/login');
   };
 
   const handleBellClick = () => {
-    if (user?.role === 'agent') {
-      router.push('/agent/notices');
-    } else {
-      router.push('/user/notices');
-    }
+    setShowNoticesDropdown(!showNoticesDropdown);
   };
 
   const handleProfileUpdate = async (e) => {
@@ -80,17 +103,73 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
   return (
     <>
       <div className="flex items-center gap-6">
-        <div 
-          onClick={handleBellClick}
-          className="relative cursor-pointer hover:text-[#2da18d] transition-colors text-[#3DBDA7] p-2 hover:bg-teal-50 rounded-full"
-          title="View Notices"
-        >
-           <FaBell size={24} />
-           {noticesCount > 0 && (
-             <span className="absolute top-1 right-1 bg-[#9B6DF7] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
-               {noticesCount}
-             </span>
-           )}
+        {/* Relative container for the Bell + Dropdown */}
+        <div className="relative">
+          <div 
+            onClick={handleBellClick}
+            className="cursor-pointer hover:text-[#2da18d] transition-colors text-[#3DBDA7] p-2 hover:bg-teal-50 rounded-full"
+            title="View Notices"
+          >
+             <FaBell size={24} />
+             {unreadCount > 0 && (
+               <span className="absolute top-1 right-1 bg-[#9B6DF7] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                 {unreadCount}
+               </span>
+             )}
+          </div>
+          
+          {/* Notices Dropdown */}
+          {showNoticesDropdown && (
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden flex flex-col max-h-[32rem]">
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 className="font-bold text-gray-900 text-lg">Notifications</h3>
+                {unreadCount > 0 && (
+                  <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-md">{unreadCount} New</span>
+                )}
+              </div>
+              
+              <div className="overflow-y-auto flex-1 p-2 space-y-1">
+                {notices.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <span className="text-4xl mb-3 block opacity-50">📭</span>
+                    <div className="text-gray-500 text-sm font-medium">No new notifications</div>
+                  </div>
+                ) : (
+                  notices.map(notice => (
+                    <div 
+                      key={notice.id} 
+                      className={`p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-100 ${notice.read ? 'opacity-70' : 'bg-blue-50/30'}`}
+                      onClick={() => {
+                        if (user?.role === 'agent') router.push('/agent/notices');
+                        else router.push('/user/notices');
+                        setShowNoticesDropdown(false);
+                      }}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <h4 className="font-bold text-gray-900 text-sm truncate pr-2">{notice.title}</h4>
+                        {!notice.read && <span className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 flex-shrink-0"></span>}
+                      </div>
+                      <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{notice.message}</p>
+                      <div className="text-[10px] text-gray-400 mt-2 font-medium">
+                        {new Date(notice.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              
+              <div 
+                className="p-3 border-t border-gray-100 text-center text-sm font-bold text-blue-600 hover:bg-gray-50 cursor-pointer transition-colors bg-white"
+                onClick={() => {
+                  if (user?.role === 'agent') router.push('/agent/notices');
+                  else router.push('/user/notices');
+                  setShowNoticesDropdown(false);
+                }}
+              >
+                View All Notices
+              </div>
+            </div>
+          )}
         </div>
 
         <button 
@@ -153,7 +232,7 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
                   type="text" 
                   value={profileData.name}
                   onChange={e => setProfileData({...profileData, name: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 placeholder-gray-500 bg-white"
                   required
                 />
               </div>
@@ -164,7 +243,7 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
                   type="email" 
                   value={profileData.email}
                   disabled
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed outline-none"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-700 cursor-not-allowed outline-none"
                 />
               </div>
 
@@ -174,7 +253,7 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
                   type="text" 
                   value={profileData.phoneNumber}
                   onChange={e => setProfileData({...profileData, phoneNumber: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 placeholder-gray-500 bg-white"
                 />
               </div>
 
@@ -185,7 +264,7 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
                     type="text" 
                     value={profileData.address || ''}
                     onChange={e => setProfileData({...profileData, address: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 placeholder-gray-500 bg-white"
                   />
                 </div>
               )}
