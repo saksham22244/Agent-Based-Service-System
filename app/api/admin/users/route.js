@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { userDb } from '@/lib/db';
 import bcrypt from 'bcrypt';
 
@@ -8,6 +9,8 @@ import bcrypt from 'bcrypt';
  */
 export async function GET(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const verified = searchParams.get('verified');
@@ -72,6 +75,8 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const body = await request.json();
     
     const { name, email, phoneNumber, address, password, role, verified } = body;

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { userDb, agentDb } from '@/lib/db';
 
 /**
@@ -7,6 +8,8 @@ import { userDb, agentDb } from '@/lib/db';
  */
 export async function GET(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || '';
     const type = searchParams.get('type') || 'all'; // 'all', 'user', 'agent'

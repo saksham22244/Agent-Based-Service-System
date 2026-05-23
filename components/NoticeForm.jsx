@@ -28,10 +28,11 @@ export default function NoticeForm({ onClose, onSubmit, users = [], agents = [] 
 
     try {
       await onSubmit(formData);
+      toast.success('Notice sent successfully!');
       onClose();
     } catch (error) {
       console.error('Error sending notice:', error);
-      toast.error('Failed to send notice: ' + error.message);
+      toast.error('Failed to send notice: ' + (error.message || 'Please try again'));
     } finally {
       setLoading(false);
     }

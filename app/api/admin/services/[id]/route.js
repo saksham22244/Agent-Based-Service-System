@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { serviceDb } from '@/lib/db';
 
 /**
@@ -7,6 +8,8 @@ import { serviceDb } from '@/lib/db';
  */
 export async function GET(request, { params }) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const { id } = await params;
     const service = await serviceDb.getById(id);
 
@@ -33,6 +36,8 @@ export async function GET(request, { params }) {
  */
 export async function PATCH(request, { params }) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const { id } = await params;
     const body = await request.json();
 
@@ -76,6 +81,8 @@ export async function PATCH(request, { params }) {
  */
 export async function DELETE(request, { params }) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const { id } = await params;
     const success = await serviceDb.delete(id);
 

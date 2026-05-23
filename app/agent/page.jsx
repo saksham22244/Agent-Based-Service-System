@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaBell, FaUserCircle, FaEnvelope, FaMapMarkerAlt, FaPhoneAlt, FaTimes } from 'react-icons/fa';
-import { toast } from 'react-toastify';
+import { FaSearch, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaFacebookF, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
 import Sidebar from '@/components/Sidebar';
 import TopHeader from '@/components/TopHeader';
 
@@ -12,8 +11,11 @@ export default function AgentHomePage() {
   const router = useRouter();
   const [agent, setAgent] = useState(null);
   const [notices, setNotices] = useState([]);
-  const [showProfile, setShowProfile] = useState(false);
+  const [requests, setRequests] = useState([]);
+  const [servicesMap, setServicesMap] = useState({});
+  const [usersMap, setUsersMap] = useState({});
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -29,28 +31,96 @@ export default function AgentHomePage() {
     }
 
     setAgent(parsedUser);
-    
-    // Fetch data for the dashboard
-    fetch(`/api/agents/${parsedUser.id}/notices`)
-      .then(res => res.json())
-      .then(noticesData => {
-        setNotices(noticesData.notices || []);
+
+    const token = localStorage.getItem('token');
+    const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+    const fetchDashboardData = async () => {
+      try {
+        const [noticesRes, requestsRes, servicesRes, usersRes] = await Promise.all([
+          fetch(`/api/agents/${parsedUser.id}/notices`, { headers: authHeaders }).then(r => r.json()),
+          fetch(`/api/applications?agentId=${parsedUser.id}`, { headers: authHeaders }).then(r => r.json()),
+          fetch('/api/admin/services', { headers: authHeaders }).then(r => r.json()),
+          fetch('/api/users', { headers: authHeaders }).then(r => r.json()),
+        ]);
+
+        setNotices(noticesRes.notices || []);
+        setRequests(Array.isArray(requestsRes) ? requestsRes : []);
+
+        const serviceEntries = Array.isArray(servicesRes.services) ? servicesRes.services : servicesRes || [];
+        const serviceMap = {};
+        serviceEntries.forEach(service => {
+          if (service?.id) serviceMap[service.id] = service;
+        });
+        setServicesMap(serviceMap);
+
+        const userEntries = Array.isArray(usersRes) ? usersRes : usersRes?.users || [];
+        const userMap = {};
+        userEntries.forEach(user => {
+          if (user?.id) userMap[user.id] = user;
+        });
+        setUsersMap(userMap);
+      } catch (error) {
+        console.error('Agent dashboard load error:', error);
+      } finally {
         setLoading(false);
-      }).catch(err => {
-      console.error(err);
-      setLoading(false);
-    });
+      }
+    };
+
+    fetchDashboardData();
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    router.push('/login');
+  const pendingRequests = requests.filter(r => ['pending_payment', 'pending_review', 'new', 'waiting'].includes(r.status)).length;
+  const inProgressRequests = requests.filter(r => ['approved', 'processing', 'assigned'].includes(r.status)).length;
+  const completedRequests = requests.filter(r => ['work_completed', 'completed'].includes(r.status)).length;
+
+  const filteredRequests = requests.filter((request) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+
+    const requestId = String(request.id || '').toLowerCase();
+    const userName = String(usersMap[request.userId]?.name || '').toLowerCase();
+    const serviceName = String(servicesMap[request.serviceId]?.name || '').toLowerCase();
+    const status = String(request.status || '').toLowerCase();
+
+    return requestId.includes(query)
+      || userName.includes(query)
+      || serviceName.includes(query)
+      || status.includes(query);
+  });
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'pending_payment':
+      case 'pending_review':
+      case 'new':
+      case 'waiting':
+        return <span className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-yellow-800">Pending</span>;
+      case 'approved':
+      case 'assigned':
+      case 'processing':
+        return <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-800">In Progress</span>;
+      case 'work_completed':
+      case 'completed':
+        return <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-green-800">Completed</span>;
+      case 'rejected':
+        return <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-800">Rejected</span>;
+      default:
+        return <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-800">{status || 'Unknown'}</span>;
+    }
+  };
+
+  const getPaymentStatus = (request) => {
+    if (request.status === 'pending_payment') return 'Pending';
+    if (request.status === 'work_completed' || request.status === 'completed') return 'Paid';
+    if (request.paymentDetails?.status) return String(request.paymentDetails.status).replace('_', ' ');
+    return 'Processing';
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#514b62]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900"></div>
       </div>
     );
   }
@@ -58,55 +128,161 @@ export default function AgentHomePage() {
   if (!agent) return null;
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans">
+    <div className="flex min-h-screen bg-slate-50 text-slate-900">
       <Sidebar />
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full">
-        <div className="h-1 bg-gradient-to-r from-blue-500 to-[#5C5470] flex-shrink-0"></div>
-        <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
-          
-          <div className="flex justify-between items-center bg-white p-8 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100">
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-10 py-6 space-y-6">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Agent Dashboard</h2>
-              <p className="text-gray-500 text-[15px]">Welcome back, <span className="font-semibold text-gray-700">{agent?.name || 'Agent'}</span>. Check your latest notices and manage requests efficiently.</p>
+              <p className="text-sm font-medium text-slate-600">Agent Dashboard</p>
+              <h1 className="mt-3 text-3xl font-semibold text-slate-900">Welcome back, {agent.name}</h1>
+              <p className="mt-2 text-sm leading-6 text-slate-600 max-w-2xl">A simple dashboard for assigned requests, progress, and notices.</p>
             </div>
-            {/* Top Right Profile Actions */}
-            <TopHeader user={agent} setUser={setAgent} noticesCount={notices.length} />
+            <div className="flex items-center justify-end">
+              <TopHeader user={agent} setUser={setAgent} noticesCount={notices.length} />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 p-12 flex flex-col items-center justify-center min-h-[400px]">
-               <h2 className="text-center text-3xl font-serif font-black mb-4 tracking-wide text-gray-800">
-                 WELCOME TO YOUR DASHBOARD
-               </h2>
-               <p className="text-gray-500 text-center max-w-lg leading-relaxed text-[15px]">
-                 Use the sidebar navigation to view notices, manage your services, process user requests, and check payment histories all from one clear interface.
-               </p>
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="grid gap-4 sm:grid-cols-3">
+                {[
+                  { label: 'Pending Requests', value: pendingRequests },
+                  { label: 'In Progress', value: inProgressRequests },
+                  { label: 'Completed', value: completedRequests },
+                ].map((card) => (
+                  <div key={card.label} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                    <p className="text-sm font-medium text-slate-600">{card.label}</p>
+                    <p className="mt-4 text-3xl font-semibold text-slate-900">{card.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-200 bg-slate-50 px-6 py-5">
+                  <h2 className="text-lg font-semibold text-slate-900">Recent Assigned Requests</h2>
+                  <p className="mt-1 text-sm text-slate-500">Track your newest tasks and keep the work moving.</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-600 text-sm font-semibold">
+                      <tr>
+                        <th className="px-6 py-4">Request ID</th>
+                        <th className="px-6 py-4">User</th>
+                        <th className="px-6 py-4">Service</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Payment</th>
+                        <th className="px-6 py-4">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 bg-white">
+                      {requests.slice(0, 5).map((request) => (
+                        <tr key={request.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4 font-medium text-slate-900">#{String(request.id).slice(-6)}</td>
+                          <td className="px-6 py-4 text-slate-600">{usersMap[request.userId]?.name || 'Unknown'}</td>
+                          <td className="px-6 py-4 text-slate-600">{servicesMap[request.serviceId]?.name || 'Service details'}</td>
+                          <td className="px-6 py-4">{getStatusBadge(request.status)}</td>
+                          <td className="px-6 py-4 text-slate-600">{getPaymentStatus(request)}</td>
+                          <td className="px-6 py-4">
+                            <Link href="/agent/requests" className="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700">View</Link>
+                          </td>
+                        </tr>
+                      ))}
+                      {requests.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-16 text-center text-sm text-slate-500">No assigned requests yet. Keep an eye on new opportunities.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 p-8 overflow-y-auto max-h-[500px] flex flex-col">
-               <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4 shrink-0">
-                  <h3 className="font-bold font-sans text-xl tracking-wide text-gray-900">Recent Notices</h3>
-                  <FaBell className="text-blue-500" size={20} />
-               </div>
-               
-               <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Agent Service Information</p>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-900">Service Contact</h2>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-4 text-sm text-slate-700">
+                  <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4">
+                    <div className="mt-0.5 text-slate-500"><FaPhoneAlt size={14} /></div>
+                    <div>
+                      <p className="text-xs text-slate-500">Phone</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{agent.phoneNumber || '+977-98XXXXXXXX'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4">
+                    <div className="mt-0.5 text-slate-500"><FaEnvelope size={14} /></div>
+                    <div>
+                      <p className="text-xs text-slate-500">Email</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{agent.email || 'agent@example.com'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4">
+                    <div className="mt-0.5 text-slate-500"><FaMapMarkerAlt size={14} /></div>
+                    <div>
+                      <p className="text-xs text-slate-500">Address</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">Kathmandu, Nepal</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 border-t border-slate-200 pt-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Social</p>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <a href="https://facebook.com/agentprofile" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200 transition">
+                      <FaFacebookF size={12} /> Facebook
+                    </a>
+                    <a href="https://instagram.com/agentprofile" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200 transition">
+                      <FaInstagram size={12} /> Instagram
+                    </a>
+                    <a href="https://linkedin.com/in/agentprofile" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200 transition">
+                      <FaLinkedinIn size={12} /> LinkedIn
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Recent Notices</p>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-900">Notices</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button type="button" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition">
+                      <FaSearch size={12} /> Search
+                    </button>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{notices.length} items</span>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-3">
                   {notices.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-                      <FaBell className="text-3xl mb-3 opacity-20" />
-                      <p className="text-sm italic">No new notices currently.</p>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-slate-500">
+                      No notices available.
                     </div>
-                  ) : notices.map(n => (
-                    <div key={n.id} className="bg-blue-50/50 rounded-lg p-4 border border-blue-100 hover:bg-blue-50 transition-colors">
-                       <p className="text-[14px] font-bold text-blue-900 mb-1 leading-tight">{n.title}</p>
-                       <p className="text-[13px] text-blue-800/80 line-clamp-3 leading-relaxed">{n.message}</p>
-                    </div>
-                  ))}
-               </div>
+                  ) : (
+                    notices.slice(0, 4).map((notice) => (
+                      <div key={notice.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="font-semibold text-slate-900">{notice.title}</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{notice.message}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
+  </div>
   );
 }

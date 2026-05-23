@@ -29,7 +29,10 @@ export default function ServicePage() {
     try {
       const response = await fetch(`/api/admin/services/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ price: Number(editPriceValue) }),
       });
       if (!response.ok) throw new Error('Failed to update price');
@@ -45,6 +48,11 @@ export default function ServicePage() {
   const [formFields, setFormFields] = useState([]);
   
   const [isAddingService, setIsAddingService] = useState(false);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
   const [isSaving, setIsSaving] = useState(false);
 
   const handleAddField = () => {
@@ -88,7 +96,10 @@ export default function ServicePage() {
     try {
       const response = await fetch(`/api/admin/services/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ approvalStatus: status }),
       });
 
@@ -108,7 +119,9 @@ export default function ServicePage() {
     try {
       setLoading(true);
       setError('');
-      const response = await fetch('/api/admin/services');
+      const response = await fetch('/api/admin/services', {
+        headers: getAuthHeaders(),
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch services');
@@ -158,6 +171,7 @@ export default function ServicePage() {
 
       const response = await fetch('/api/admin/services', {
         method: 'POST',
+        headers: getAuthHeaders(),
         body: formData,
       });
 
@@ -206,6 +220,7 @@ export default function ServicePage() {
       setError('');
       const response = await fetch(`/api/admin/services/${id}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {

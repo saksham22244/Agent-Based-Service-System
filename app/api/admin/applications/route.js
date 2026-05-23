@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { applicationDb, serviceDb } from '@/lib/db';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -6,6 +7,8 @@ import { existsSync } from 'fs';
 
 export async function GET(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const agentId = searchParams.get('agentId');
@@ -31,6 +34,8 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     // Expect FormData because it will likely contain uploaded documents (files) from the dynamic form fields
     const formData = await request.formData();
     

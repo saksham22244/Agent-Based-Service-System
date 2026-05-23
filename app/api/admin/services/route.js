@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { verifyJWT, requireAdmin } from '@/lib/auth';
 import { serviceDb } from '@/lib/db';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -10,6 +11,9 @@ import { existsSync } from 'fs';
  */
 export async function GET(request) {
   try {
+    const authResult = verifyJWT(request);
+    const isAdmin = !(authResult instanceof NextResponse) && ['superadmin', 'admin'].includes(authResult.payload.role);
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const active = searchParams.get('active');
@@ -18,6 +22,10 @@ export async function GET(request) {
     const skip = (page - 1) * limit;
 
     let services = await serviceDb.getAll();
+
+    if (!isAdmin) {
+      services = services.filter(s => s.approvalStatus === 'approved' && s.active !== false);
+    }
 
     // Apply search filter
     if (search) {
@@ -64,6 +72,8 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const formData = await request.formData();
     
     const name = formData.get('name');

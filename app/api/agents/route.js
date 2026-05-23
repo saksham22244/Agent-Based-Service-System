@@ -4,7 +4,11 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import { AgentSchema } from '@/lib/schemas';
+import { sendAccountCreatedEmail } from '@/lib/email';
 
+// GET is public — used by admin dashboard to list agents for selection
 export async function GET() {
   try {
     const agents = await agentDb.getAll();
@@ -33,6 +37,15 @@ export async function POST(request) {
     if (!name || !email || !phoneNumber || !address) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate with Zod to strip any injected fields
+    const parsed = AgentSchema.safeParse({ name, email, phoneNumber, address, paymentDetails });
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parsed.error.format() },
         { status: 400 }
       );
     }
@@ -76,12 +89,10 @@ export async function POST(request) {
     // Check if approved flag is set (for admin-created agents)
     const approved = formData.get('approved') === 'true';
     
-    // Hash password if provided
-    const password = formData.get('password');
-    let hashedPassword = null;
-    if (password) {
-      hashedPassword = await bcrypt.hash(password, 10);
-    }
+    // Generate a password if admin didn't provide one
+    const providedPassword = formData.get('password');
+    const generatedPassword = providedPassword || crypto.randomBytes(8).toString('hex');
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
     const newAgent = await agentDb.create({
       name,
@@ -94,6 +105,17 @@ export async function POST(request) {
       password: hashedPassword,
       approved: approved || false, // Default to false unless explicitly set to true
     });
+
+    try {
+      await sendAccountCreatedEmail({
+        email: newAgent.email,
+        name: newAgent.name,
+        password: generatedPassword,
+        role: 'agent',
+      });
+    } catch (emailError) {
+      console.error('Error sending new agent email:', emailError);
+    }
 
     return NextResponse.json(newAgent, { status: 201 });
   } catch (error) {

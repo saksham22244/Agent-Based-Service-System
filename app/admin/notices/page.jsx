@@ -42,10 +42,13 @@ export default function NoticePage() {
   const fetchData = async () => {
     try {
       // Promise.all runs all 3 API fetches simultaneously for faster load times.
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
       const [noticesRes, usersRes, agentsRes] = await Promise.all([
-        fetch('/api/admin/notices'), // Download past notices
-        fetch('/api/users'),         // Download all users
-        fetch('/api/agents'),        // Download all agents
+        fetch('/api/admin/notices', { headers: authHeaders }), // Download past notices
+        fetch('/api/users', { headers: authHeaders }),         // Download all users
+        fetch('/api/agents', { headers: authHeaders }),        // Download all agents
       ]);
 
       const noticesData = await noticesRes.json();

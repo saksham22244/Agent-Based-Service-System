@@ -19,7 +19,41 @@ export default function SignupPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({
+    name: false,
+    phoneNumber: false,
+    email: false,
+    address: false,
+    password: false,
+    confirmPassword: false,
+  });
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
+
+  const checkEmailAvailability = async (email) => {
+    if (!email || validateField('email', email)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (data.exists) {
+        setErrors((prev) => ({ ...prev, email: data.error }));
+      }
+    } catch (err) {
+      console.error('Email validation error:', err);
+    }
+  };
   const [otpData, setOtpData] = useState(null);
   const [otp, setOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
@@ -30,23 +64,122 @@ export default function SignupPage() {
   const logoSrc =
     'https://drive.google.com/uc?export=view&id=1Dq2CNVPgjj7-5si_GoT7xkEpXYwT57gy';
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!form.name.trim()) {
+      newErrors.name = 'Full name is required';
+    }
+
+    const phoneDigits = form.phoneNumber.replace(/\D/g, '');
+    if (!phoneDigits || phoneDigits.length !== 10) {
+      newErrors.phoneNumber = 'Phone number must be 10 digits';
+    }
+
+    if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      newErrors.email = 'Invalid email address';
+    }
+
+    if (!form.address.trim() || form.address.trim().length < 6) {
+      newErrors.address = 'Address should be at least 6 characters';
+    }
+
+    if (!form.password) {
+      newErrors.password = 'Password is required';
+    } else {
+      if (form.password.length < 6) {
+        newErrors.password = 'Password must be at least 6 characters';
+      } else if (!/[A-Za-z]/.test(form.password) || !/\d/.test(form.password)) {
+        newErrors.password = 'Password must include letters and numbers';
+      }
+    }
+
+    if (form.password !== form.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    return newErrors;
+  };
+
+  const validateField = (field, value) => {
+    switch (field) {
+      case 'name':
+        if (!value.trim()) return 'Full name is required';
+        return '';
+      case 'phoneNumber': {
+        const phoneDigits = value.replace(/\D/g, '');
+        if (!phoneDigits || phoneDigits.length !== 10) return 'Phone number must be 10 digits';
+        return '';
+      }
+      case 'email':
+        if (!value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Invalid email address';
+        return '';
+      case 'address':
+        if (!value.trim() || value.trim().length < 6) return 'Address should be at least 6 characters';
+        return '';
+      case 'password':
+        if (!value) return 'Password is required';
+        if (value.length < 6) return 'Password must be at least 6 characters';
+        if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) return 'Password must include letters and numbers';
+        return '';
+      case 'confirmPassword':
+        if (value !== form.password) return 'Passwords do not match';
+        return '';
+      default:
+        return '';
+    }
+  };
+
   const handleChange = (field) => (e) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    const value = e.target.value;
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setError('');
+
+    if (touched[field] || hasSubmitted) {
+      const fieldError = validateField(field, value);
+      setErrors((prev) => ({ ...prev, [field]: fieldError }));
+
+      if (field === 'password' || field === 'confirmPassword') {
+        const confirmError = validateField('confirmPassword', field === 'confirmPassword' ? value : form.confirmPassword);
+        setErrors((prev) => ({ ...prev, confirmPassword: confirmError }));
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setHasSubmitted(true);
+    setTouched({
+      name: true,
+      phoneNumber: true,
+      email: true,
+      address: true,
+      password: true,
+      confirmPassword: true,
+    });
     setError('');
 
-    if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match');
+    if (
+      !form.name.trim() &&
+      !form.phoneNumber.trim() &&
+      !form.email.trim() &&
+      !form.address.trim() &&
+      !form.password &&
+      !form.confirmPassword
+    ) {
+      setError('Please fill out the form first');
+      setErrors({});
       return;
     }
 
-    if (!form.address) {
-      setError('Address is required');
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
+
+    setErrors({});
+    setSubmitting(true);
 
     setSubmitting(true);
     try {
@@ -69,6 +202,11 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        const duplicateEmail = data.error?.toLowerCase().includes('email already exists');
+        if (duplicateEmail) {
+          setErrors((prev) => ({ ...prev, email: data.error }));
+          return;
+        }
         setError(data.error || 'Failed to send OTP');
         return;
       }
@@ -221,7 +359,7 @@ export default function SignupPage() {
             </h2>
 
             {/* FORM */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form autoComplete="off" onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="mb-6 text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-lg shadow-sm">
                   {error}
@@ -231,62 +369,110 @@ export default function SignupPage() {
               <input
                 type="text"
                 placeholder="Full Name"
-                required
                 value={form.name}
                 onChange={handleChange('name')}
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, name: true }));
+                  const fieldError = validateField('name', form.name);
+                  setErrors((prev) => ({ ...prev, name: fieldError }));
+                }}
                 className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
+              {(hasSubmitted || touched.name) && errors.name && (
+                <p className="text-sm text-red-600 mt-2">{errors.name}</p>
+              )}
 
               <input
                 type="tel"
                 placeholder="Phone Number"
-                required
                 value={form.phoneNumber}
                 onChange={handleChange('phoneNumber')}
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, phoneNumber: true }));
+                  const fieldError = validateField('phoneNumber', form.phoneNumber);
+                  setErrors((prev) => ({ ...prev, phoneNumber: fieldError }));
+                }}
                 className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
+              {(hasSubmitted || touched.phoneNumber) && errors.phoneNumber && (
+                <p className="text-sm text-red-600 mt-2">{errors.phoneNumber}</p>
+              )}
 
               <input
                 type="email"
+                name="signup-email"
+                autoComplete="off"
                 placeholder="Email address"
-                required
                 value={form.email}
                 onChange={handleChange('email')}
+                onBlur={async () => {
+                  setTouched((prev) => ({ ...prev, email: true }));
+                  const fieldError = validateField('email', form.email);
+                  setErrors((prev) => ({ ...prev, email: fieldError }));
+                  if (!fieldError) {
+                    await checkEmailAvailability(form.email);
+                  }
+                }}
                 className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
+              {(hasSubmitted || touched.email) && errors.email && (
+                <p className="text-sm text-red-600 mt-2">{errors.email}</p>
+              )}
 
               <input
                 type="text"
                 placeholder="Address"
-                required
                 value={form.address}
                 onChange={handleChange('address')}
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, address: true }));
+                  const fieldError = validateField('address', form.address);
+                  setErrors((prev) => ({ ...prev, address: fieldError }));
+                }}
                 className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
+              {(hasSubmitted || touched.address) && errors.address && (
+                <p className="text-sm text-red-600 mt-2">{errors.address}</p>
+              )}
 
               <input
                 type="password"
                 placeholder="Password"
-                required
                 value={form.password}
                 onChange={handleChange('password')}
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, password: true }));
+                  const fieldError = validateField('password', form.password);
+                  const confirmError = validateField('confirmPassword', form.confirmPassword);
+                  setErrors((prev) => ({ ...prev, password: fieldError, confirmPassword: confirmError }));
+                }}
                 className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
+              {(hasSubmitted || touched.password) && errors.password && (
+                <p className="text-sm text-red-600 mt-2">{errors.password}</p>
+              )}
 
               <input
                 type="password"
                 placeholder="Confirm Password"
-                required
                 value={form.confirmPassword}
                 onChange={handleChange('confirmPassword')}
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, confirmPassword: true }));
+                  const fieldError = validateField('confirmPassword', form.confirmPassword);
+                  setErrors((prev) => ({ ...prev, confirmPassword: fieldError }));
+                }}
                 className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
                 suppressHydrationWarning
               />
+              {(hasSubmitted || touched.confirmPassword) && errors.confirmPassword && (
+                <p className="text-sm text-red-600 mt-2">{errors.confirmPassword}</p>
+              )}
 
               <button
                 type="submit"

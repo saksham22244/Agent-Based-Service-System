@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { userDb, agentDb } from '@/lib/db';
 
 /**
@@ -8,6 +9,8 @@ import { userDb, agentDb } from '@/lib/db';
  */
 export async function POST(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const body = await request.json();
     const { operation, type, ids, data } = body;
 

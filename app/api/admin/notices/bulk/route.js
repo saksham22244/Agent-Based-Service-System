@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { noticeDb } from '@/lib/db';
 
 // POST - Bulk operations on notices
 export async function POST(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const body = await request.json();
     const { operation, ids, data } = body;
     

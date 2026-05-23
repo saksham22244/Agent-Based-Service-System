@@ -51,12 +51,15 @@ export default function HistoryPage() {
         ? `/api/applications?agentId=${currentUserData.id}` 
         : `/api/applications`;
 
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
       // 3. Parallel fetching: Download all 4 datasets absolutely simultaneously to minimize loading screen time
       const [servicesRes, usersRes, appsRes, agentsRes] = await Promise.all([
-        fetch('/api/admin/services').then(r => r.json()),
-        fetch('/api/users').then(r => r.json()), 
+        fetch('/api/admin/services', { headers: authHeaders }).then(r => r.json()),
+        fetch('/api/users', { headers: authHeaders }).then(r => r.json()), 
         fetch(appsUrl).then(r => r.json()), // Uses our dynamic URL from step 2
-        fetch('/api/agents').then(r => r.json())
+        fetch('/api/agents', { headers: authHeaders }).then(r => r.json())
       ]);
 
       // 4. Optimization: Convert Lists into Dictionaries (HashMaps)

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { userDb, agentDb } from '@/lib/db';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import { createToken } from '@/lib/auth';
 
 export async function POST(request) {
   try {
@@ -39,12 +40,11 @@ export async function POST(request) {
 
       const user = await userDb.create(newUser);
 
-      const jwt = require('jsonwebtoken');
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, role: 'user' },
-        process.env.NEXTAUTH_SECRET || 'fallback-secret-key',
-        { expiresIn: '1d' }
-      );
+      const token = createToken({
+        id: user.id || (user._id ? user._id.toString() : null),
+        email: user.email,
+        role: 'user',
+      });
 
       return NextResponse.json({
         message: 'Signup successful',

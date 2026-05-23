@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { userDb, agentDb, serviceDb, userServiceDb, noticeDb } from '@/lib/db';
 
 /**
  * GET /api/admin/statistics
  * Returns dashboard statistics for admin
  */
-export async function GET() {
+export async function GET(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const [users, agents, services, noticeStats] = await Promise.all([
       userDb.getAll(),
       agentDb.getAll(),

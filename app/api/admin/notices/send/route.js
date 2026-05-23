@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { noticeDb, userDb, agentDb } from '@/lib/db';
 
 // POST - Send notice to specific user/agent or bulk send
 export async function POST(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const body = await request.json();
     const { title, message, recipientType, recipients, priority = 'normal' } = body;
     

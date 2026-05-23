@@ -33,9 +33,12 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     try {
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
       const [usersRes, agentsRes] = await Promise.all([
-        fetch('/api/users'),
-        fetch('/api/agents'),
+        fetch('/api/users', { headers: authHeaders }),
+        fetch('/api/agents', { headers: authHeaders }),
       ]);
 
       const usersData = await usersRes.json();
@@ -97,10 +100,14 @@ export default function DashboardPage() {
       const endpoint = type === 'user' ? `/api/users/${id}` : `/api/agents/${id}`;
       console.log('Making DELETE request to:', endpoint);
 
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
       const response = await fetch(endpoint, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
       });
 
@@ -159,10 +166,14 @@ export default function DashboardPage() {
 
   const handleAddUser = async (userData) => {
     try {
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
       const response = await fetch('/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
         body: JSON.stringify({
           ...userData,
@@ -199,7 +210,7 @@ export default function DashboardPage() {
 
       if (response.ok) {
         setAddAgentModal(false);
-        toast.success('Agent created and approved successfully!');
+        toast.success('Agent account created successfully!');
         await fetchData();
       } else {
         toast.error(data.error || 'Failed to create agent');
@@ -222,14 +233,14 @@ export default function DashboardPage() {
 
       const data = await response.json();
 
-      if (response.ok) {
-        toast.success(`Notice sent successfully! ${data.successCount} recipients notified.`);
-      } else {
-        toast.error(data.error || 'Failed to send notice');
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send notice');
       }
+
+      return data;
     } catch (error) {
       console.error('Error sending notice:', error);
-      toast.error('An error occurred while sending notice');
+      throw error;
     }
   };
 

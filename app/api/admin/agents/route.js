@@ -3,12 +3,14 @@ import { agentDb } from '@/lib/db';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { requireAdmin } from '@/lib/auth';
 
 /**
  * GET /api/admin/agents
- * Get all agents with optional filtering and pagination
  */
 export async function GET(request) {
+  const auth = requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
@@ -67,9 +69,10 @@ export async function GET(request) {
 
 /**
  * POST /api/admin/agents
- * Create a new agent (admin can create agents directly)
  */
 export async function POST(request) {
+  const auth = requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
   try {
     const formData = await request.formData();
     

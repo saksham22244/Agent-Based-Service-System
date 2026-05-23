@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { userDb } from '@/lib/db';
 import bcrypt from 'bcrypt';
 
@@ -8,6 +9,8 @@ import bcrypt from 'bcrypt';
  */
 export async function GET(request, { params }) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const { id } = await params;
     const user = await userDb.getById(id);
 
@@ -45,6 +48,8 @@ export async function GET(request, { params }) {
  */
 export async function PATCH(request, { params }) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const { id } = await params;
     const body = await request.json();
 
@@ -104,6 +109,8 @@ export async function PATCH(request, { params }) {
  */
 export async function DELETE(request, { params }) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const { id } = await params;
     
     // Check if user is super admin before deleting

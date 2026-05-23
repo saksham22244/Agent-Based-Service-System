@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { noticeDb } from '@/lib/db';
 
 // GET - Fetch all notices with filtering and pagination
 export async function GET(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const { searchParams } = new URL(request.url);
     
     const filters = {
@@ -32,6 +35,8 @@ export async function GET(request) {
 // POST - Create a new notice
 export async function POST(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     const body = await request.json();
     
     // Validate required fields

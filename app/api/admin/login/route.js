@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { auth, createToken } from '@/lib/auth';
 
 export async function POST(request) {
   try {
@@ -22,7 +22,7 @@ export async function POST(request) {
       );
     }
 
-    // Agent pending check
+    // Agent pending approval check
     if (session.isAgent && !session.user.approved) {
       return NextResponse.json(
         { error: 'PENDING_APPROVAL' },
@@ -30,7 +30,7 @@ export async function POST(request) {
       );
     }
 
-    // Check if user is verified (for regular users)
+    // Unverified regular user check
     if (session.user.role === 'user' && !session.user.verified) {
       return NextResponse.json(
         { error: 'Please verify your email before logging in.' },
@@ -38,13 +38,7 @@ export async function POST(request) {
       );
     }
 
-    // If match then login successfully
-    const jwt = require('jsonwebtoken');
-    const token = jwt.sign(
-      { userId: session.user._id, email: session.user.email, role: session.user.role },
-      process.env.NEXTAUTH_SECRET || 'fallback-secret-key',
-      { expiresIn: '1d' }
-    );
+    const token = createToken(session.user);
 
     return NextResponse.json({
       message: 'Login successful',

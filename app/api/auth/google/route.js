@@ -1,20 +1,21 @@
 import { NextResponse } from 'next/server';
 import { OAuth2Client } from 'google-auth-library';
+import { createToken } from '@/lib/auth';
 import { userDb, agentDb } from '@/lib/db';
 
 const client = new OAuth2Client(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
 export async function POST(request) {
   try {
-    const { token } = await request.json();
+    const { token: idToken } = await request.json();
 
-    if (!token) {
+    if (!idToken) {
       return NextResponse.json({ error: 'Token is required' }, { status: 400 });
     }
 
     // Verify the Google ID token
     const ticket = await client.verifyIdToken({
-      idToken: token,
+      idToken,
       audience: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
     });
 
@@ -49,18 +50,17 @@ export async function POST(request) {
          user.verified = true;
       }
 
-      const jwt = require('jsonwebtoken');
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, role: user.role || 'user' },
-        process.env.NEXTAUTH_SECRET || 'fallback-secret-key',
-        { expiresIn: '1d' }
-      );
+      const authToken = createToken({
+        id: user.id || (user._id ? user._id.toString() : null),
+        email: user.email,
+        role: user.role || 'user',
+      });
 
       return NextResponse.json({
         status: 'SUCCESS',
         message: 'Login successful',
         user,
-        token,
+        token: authToken,
       });
     }
 

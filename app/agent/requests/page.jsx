@@ -49,19 +49,26 @@ export default function RequestPage() {
         ? `/api/applications?agentId=${currentUserData.id}` 
         : `/api/applications`;
 
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
       const [servicesRes, usersRes, appsRes, agentsRes] = await Promise.all([
-        fetch('/api/admin/services').then(r => r.json()),
-        fetch('/api/users').then(r => r.json()), 
+        fetch('/api/admin/services', { headers: authHeaders }).then(r => r.json()),
+        fetch('/api/users', { headers: authHeaders }).then(r => r.json()), 
         fetch(appsUrl).then(r => r.json()),
-        fetch('/api/agents').then(r => r.json())
+        fetch('/api/agents', { headers: authHeaders }).then(r => r.json())
       ]);
 
       const sMap = {};
       (servicesRes.services || []).forEach(s => { sMap[s.id] = s; });
       setServicesMap(sMap);
 
+      const usersArray = Array.isArray(usersRes) ? usersRes : usersRes?.users || [];
+      if (!Array.isArray(usersArray) && usersRes) {
+        console.warn('Unexpected /api/users response format:', usersRes);
+      }
       const uMap = {};
-      (usersRes || []).forEach(u => { uMap[u.id] = u; });
+      usersArray.forEach(u => { uMap[u.id] = u; });
       setUsersMap(uMap);
 
       setApplications(appsRes || []);

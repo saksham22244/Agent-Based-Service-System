@@ -4,12 +4,14 @@ import { unlink } from 'fs/promises';
 import { join } from 'path';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
+import { requireAdmin } from '@/lib/auth';
 
 /**
  * GET /api/admin/agents/[id]
- * Get a specific agent by ID
  */
 export async function GET(request, { params }) {
+  const auth = requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
   try {
     const { id } = await params;
     const agent = await agentDb.getById(id);
@@ -36,9 +38,10 @@ export async function GET(request, { params }) {
 
 /**
  * PATCH /api/admin/agents/[id]
- * Update an agent (admin can update any agent field including approval)
  */
 export async function PATCH(request, { params }) {
+  const auth = requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
   try {
     const { id } = await params;
     const contentType = request.headers.get('content-type');
@@ -124,9 +127,10 @@ export async function PATCH(request, { params }) {
 
 /**
  * DELETE /api/admin/agents/[id]
- * Delete an agent
  */
 export async function DELETE(request, { params }) {
+  const auth = requireAdmin(request);
+  if (auth instanceof NextResponse) return auth;
   try {
     const { id } = await params;
     const agent = await agentDb.getById(id);

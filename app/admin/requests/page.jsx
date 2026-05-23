@@ -49,11 +49,14 @@ export default function RequestPage() {
         ? `/api/applications?agentId=${currentUserData.id}` 
         : `/api/applications`;
 
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
       const [servicesRes, usersRes, appsRes, agentsRes] = await Promise.all([
-        fetch('/api/admin/services').then(r => r.json()),
-        fetch('/api/users').then(r => r.json()), 
+        fetch('/api/admin/services', { headers: authHeaders }).then(r => r.json()),
+        fetch('/api/users', { headers: authHeaders }).then(r => r.json()), 
         fetch(appsUrl).then(r => r.json()),
-        fetch('/api/agents').then(r => r.json())
+        fetch('/api/agents', { headers: authHeaders }).then(r => r.json())
       ]);
 
       const sMap = {};

@@ -8,6 +8,7 @@ export default function UserForm({ onSubmit, onCancel, initialData }) {
     email: initialData?.email || '',
     phoneNumber: initialData?.phoneNumber || '',
     address: initialData?.address || '',
+    password: initialData?.password || '',
     role: initialData?.role || 'user',
   });
 
@@ -70,6 +71,20 @@ export default function UserForm({ onSubmit, onCancel, initialData }) {
           value={formData.address}
           onChange={(e) => setFormData({ ...formData, address: e.target.value })}
           rows={3}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border text-gray-900 font-medium"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          Password (optional)
+        </label>
+        <input
+          type="password"
+          id="password"
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          placeholder="Leave blank to auto-generate"
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border text-gray-900 font-medium"
         />
       </div>

@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { transactionDb, agentDb } from '@/lib/db';
 
 export async function GET(request) {
   try {
+    const auth = requireAdmin(request);
+    if (auth instanceof NextResponse) return auth;
     // Get all agent-related transactions
     const allTransactions = await transactionDb.getAll();
     

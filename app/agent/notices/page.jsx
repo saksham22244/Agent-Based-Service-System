@@ -13,6 +13,7 @@ export default function AgentNoticesPage() {
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState({});
   const [noticeToDelete, setNoticeToDelete] = useState(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -21,6 +22,7 @@ export default function AgentNoticesPage() {
       return;
     }
     const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
     
     if (parsedUser.email === 'admin@example.com' || parsedUser.role === 'superadmin') {
       router.push('/dashboard');
@@ -131,7 +133,7 @@ export default function AgentNoticesPage() {
               <span className="bg-[#5C5470] text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md">
                 {notices.filter(n => !n.read).length} Unread
               </span>
-              <TopHeader user={localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null} setUser={() => {}} noticesCount={notices.filter(n => !n.read).length} />
+              <TopHeader user={user} setUser={setUser} noticesCount={notices.filter(n => !n.read).length} />
             </div>
           </div>
         
