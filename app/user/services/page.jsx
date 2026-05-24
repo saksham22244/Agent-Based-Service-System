@@ -164,7 +164,7 @@ export default function UserServicesPage() {
                   .map(service => (
                   <div key={service.id} className="bg-white border hover:shadow-xl transition-shadow border-gray-200 rounded-xl overflow-hidden flex flex-col">
                     <div className={`${service.color} ${service.borderColor} p-6 flex flex-col items-center justify-center text-center relative border-b-2`}>
-                      {service.imageUrl ? (
+                      {service.imageUrl && !service.imageUrl.startsWith('/uploads/') ? (
                         <img src={service.imageUrl} alt={service.name} className="w-20 h-20 object-cover rounded-full border-4 border-white shadow-sm mb-4" />
                       ) : (
                         <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">

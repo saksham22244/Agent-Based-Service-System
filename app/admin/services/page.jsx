@@ -402,7 +402,7 @@ export default function ServicePage() {
                   >
                     ×
                   </button>
-                  {service.imageUrl ? (
+                  {service.imageUrl && !service.imageUrl.startsWith('/uploads/') ? (
                     <img src={service.imageUrl} alt={service.name} className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-full border-4 border-white shadow-sm mb-4" />
                   ) : (
                     <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex flex-shrink-0 items-center justify-center shadow-sm mb-4">

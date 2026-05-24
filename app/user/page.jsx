@@ -201,7 +201,7 @@ export default function UserHomePage() {
                 ) : services.slice(0, 3).map(service => (
                   <div key={service.id} className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden flex flex-col transition hover:shadow-md">
                     <div className={`${service.color || 'bg-blue-50'} ${service.borderColor || 'border-blue-200'} p-6 flex flex-col items-center justify-center text-center relative border-b border-gray-100`}>
-                      {service.imageUrl ? (
+                      {service.imageUrl && !service.imageUrl.startsWith('/uploads/') ? (
                         <img src={service.imageUrl} alt={service.name} className="w-20 h-20 object-cover rounded-full border-4 border-white shadow-sm mb-4" />
                       ) : (
                         <div className="w-16 h-16 bg-white rounded-full flex flex-shrink-0 items-center justify-center shadow-sm mb-4">
