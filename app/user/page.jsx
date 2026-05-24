@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaBell, FaClipboardList, FaHistory, FaPaperPlane, FaPhoneAlt, FaTimes, FaTrashAlt } from 'react-icons/fa';
+import { FaBell, FaClipboardList, FaEnvelope, FaFacebookF, FaHistory, FaInstagram, FaLinkedinIn, FaMapMarkerAlt, FaPaperPlane, FaPhoneAlt, FaTimes, FaTrashAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 import Sidebar from '@/components/Sidebar';
@@ -164,20 +164,20 @@ export default function UserHomePage() {
           </div>
 
           <div className="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-5">
+            <div className="bg-white rounded-3xl shadow-sm p-6">
               <p className="text-sm font-medium text-gray-500">My Requests</p>
               <p className="mt-4 text-3xl font-semibold text-gray-900">{requests.length}</p>
-              <p className="mt-2 text-sm text-gray-500">Total requests submitted so far.</p>
+              <p className="mt-3 text-sm text-gray-500">Total requests submitted so far.</p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-5">
+            <div className="bg-white rounded-3xl shadow-sm p-6">
               <p className="text-sm font-medium text-gray-500">Pending Requests</p>
               <p className="mt-4 text-3xl font-semibold text-gray-900">{requests.filter(req => !['work_completed','rejected'].includes(req.status)).length}</p>
-              <p className="mt-2 text-sm text-gray-500">Requests still awaiting review, payment or approval.</p>
+              <p className="mt-3 text-sm text-gray-500">Requests still awaiting review, payment or approval.</p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-5">
+            <div className="bg-white rounded-3xl shadow-sm p-6">
               <p className="text-sm font-medium text-gray-500">Completed Requests</p>
               <p className="mt-4 text-3xl font-semibold text-gray-900">{requests.filter(req => req.status === 'work_completed').length}</p>
-              <p className="mt-2 text-sm text-gray-500">Requests marked complete by the support team.</p>
+              <p className="mt-3 text-sm text-gray-500">Requests marked complete by the support team.</p>
             </div>
           </div>
 
@@ -316,6 +316,50 @@ export default function UserHomePage() {
                   <Link href="/user/notices" className="text-sm font-semibold text-blue-600 hover:text-blue-800">
                     View All Notices
                   </Link>
+                </div>
+              </div>
+
+                <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
+                <div className="px-6 py-5 bg-white">
+                  <h3 className="text-xl font-bold text-gray-900">Agent Service Information</h3>
+                  <p className="mt-1 text-sm text-gray-500">If you need help, use the contact details below.</p>
+                </div>
+                <div className="px-6 pb-6 pt-4 space-y-4 text-sm text-gray-700">
+                  <div className="flex items-start gap-3">
+                    <FaPhoneAlt className="mt-1 text-blue-600" />
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-gray-500">Phone</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">053540221</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <FaEnvelope className="mt-1 text-blue-600" />
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-gray-500">Email</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">admin@gmail.com</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <FaMapMarkerAlt className="mt-1 text-blue-600" />
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-gray-500">Address</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">Kathmandu, Nepal</p>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-100">
+                    <p className="text-xs uppercase tracking-[0.24em] text-gray-500">Social</p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-gray-900">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-gray-700">
+                        <FaFacebookF className="text-blue-600" /> Facebook
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-gray-700">
+                        <FaInstagram className="text-pink-500" /> Instagram
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-gray-700">
+                        <FaLinkedinIn className="text-blue-700" /> LinkedIn
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 

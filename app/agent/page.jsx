@@ -214,14 +214,14 @@ export default function AgentHomePage() {
                     <div className="mt-0.5 text-slate-500"><FaPhoneAlt size={14} /></div>
                     <div>
                       <p className="text-xs text-slate-500">Phone</p>
-                      <p className="mt-1 text-sm font-semibold text-slate-900">{agent.phoneNumber || '+977-98XXXXXXXX'}</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{agent.phoneNumber || '053540221'}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4">
                     <div className="mt-0.5 text-slate-500"><FaEnvelope size={14} /></div>
                     <div>
                       <p className="text-xs text-slate-500">Email</p>
-                      <p className="mt-1 text-sm font-semibold text-slate-900">{agent.email || 'agent@example.com'}</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{agent.email || 'admin@gmail.com'}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4">
