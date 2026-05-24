@@ -1,11 +1,13 @@
 {
-  "name": "Service System",
+  "name": "Agent Based Service System",
   "short_name": "ServiceApp",
   "description": "Agent-Based Service System",
-  "start_url": "/",
+  "start_url": "/login",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "theme_color": "#3b82f6",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -19,5 +21,7 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["utilities", "productivity"],
+  "lang": "en"
 }
