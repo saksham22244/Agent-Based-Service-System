@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { userDb } from '@/lib/db';
 
 // This route handles post-authentication redirects
 export async function GET(request) {
