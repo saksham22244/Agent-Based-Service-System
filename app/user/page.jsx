@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaBell, FaUserCircle, FaEnvelope, FaMapMarkerAlt, FaPhoneAlt, FaTimes, FaTrashAlt } from 'react-icons/fa';
+import { FaBell, FaClipboardList, FaHistory, FaPaperPlane, FaPhoneAlt, FaTimes, FaTrashAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 import Sidebar from '@/components/Sidebar';
@@ -14,6 +14,7 @@ export default function UserHomePage() {
   const [user, setUser] = useState(null);
   const [notices, setNotices] = useState([]);
   const [services, setServices] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Application Form Modal State
@@ -119,12 +120,13 @@ export default function UserHomePage() {
     // Fetch data for the dashboard
     Promise.all([
       fetch(`/api/users/${parsedUser.id}/notices`).then(res => res.json()),
-      fetch('/api/admin/services').then(res => res.json())
-    ]).then(([noticesData, servicesData]) => {
+      fetch('/api/admin/services').then(res => res.json()),
+      fetch(`/api/user/applications?userId=${parsedUser.id}`).then(res => res.json())
+    ]).then(([noticesData, servicesData, appsData]) => {
       setNotices(noticesData.notices || []);
       const activeServices = (servicesData.services || []).filter(s => s.approvalStatus === 'approved' && s.active !== false);
-      
       setServices(activeServices);
+      setRequests(Array.isArray(appsData) ? appsData : []);
       setLoading(false);
     }).catch(err => {
       console.error(err);
@@ -160,97 +162,196 @@ export default function UserHomePage() {
             {/* Top Right Profile Actions */}
             <TopHeader user={user} setUser={setUser} noticesCount={notices.length} hideSearch={true} />
           </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Services taking up 3 columns */}
-            <div className="lg:col-span-3">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900">Featured Services</h3>
-                <Link href="/user/services" className="text-blue-600 hover:text-blue-700 font-medium bg-blue-50 px-4 py-2 rounded-lg transition-colors">
+
+          <div className="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-5">
+              <p className="text-sm font-medium text-gray-500">My Requests</p>
+              <p className="mt-4 text-3xl font-semibold text-gray-900">{requests.length}</p>
+              <p className="mt-2 text-sm text-gray-500">Total requests submitted so far.</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-5">
+              <p className="text-sm font-medium text-gray-500">Pending Requests</p>
+              <p className="mt-4 text-3xl font-semibold text-gray-900">{requests.filter(req => !['work_completed','rejected'].includes(req.status)).length}</p>
+              <p className="mt-2 text-sm text-gray-500">Requests still awaiting review, payment or approval.</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-5">
+              <p className="text-sm font-medium text-gray-500">Completed Requests</p>
+              <p className="mt-4 text-3xl font-semibold text-gray-900">{requests.filter(req => req.status === 'work_completed').length}</p>
+              <p className="mt-2 text-sm text-gray-500">Requests marked complete by the support team.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">Featured Services</h3>
+                  <p className="text-sm text-gray-500 mt-1">Most popular services available to request today.</p>
+                </div>
+                <Link href="/user/services" className="inline-flex items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
                   View All Services
                 </Link>
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {services.length === 0 ? (
-                   <div className="col-span-full bg-white p-8 rounded-xl border border-gray-200 text-center">
-                     <p className="text-gray-500">No active services are available at the moment.</p>
-                   </div>
-                 ) : services.slice(0, 6).map(service => (
-                   <div key={service.id} className="bg-white border hover:shadow-xl transition-shadow border-gray-200 rounded-xl overflow-hidden flex flex-col">
-                     <div className={`${service.color || 'bg-blue-50'} ${service.borderColor || 'border-blue-200'} p-6 flex flex-col items-center justify-center text-center relative border-b-2`}>
-                       {service.imageUrl ? (
-                         <img src={service.imageUrl} alt={service.name} className="w-20 h-20 object-cover rounded-full border-4 border-white shadow-sm mb-4" />
-                       ) : (
-                         <div className="w-16 h-16 bg-white rounded-full flex flex-shrink-0 items-center justify-center shadow-sm mb-4">
-                           <span className="text-3xl">{service.icon || '📋'}</span>
-                         </div>
-                       )}
-                       <h3 className="text-xl font-bold text-gray-900 leading-tight">{service.name}</h3>
-                     </div>
-                     <div className="p-5 flex-1 flex flex-col">
-                       <p className="text-sm text-gray-600 line-clamp-3 mb-4 flex-1">
-                         {service.description || 'No description provided for this service block.'}
-                       </p>
-                       <div className="text-lg font-bold text-blue-600 mb-2">Rs. {service.price || 0}</div>
-                       <button 
-                         onClick={() => handleApplyClick(service)}
-                         className="block text-center w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors"
-                       >
-                         Apply Now
-                       </button>
-                     </div>
-                   </div>
-                 ))}
+                {services.length === 0 ? (
+                  <div className="col-span-full bg-white p-8 rounded-3xl border border-gray-200 text-center shadow-sm">
+                    <p className="text-gray-500">No active services are available at the moment.</p>
+                  </div>
+                ) : services.slice(0, 3).map(service => (
+                  <div key={service.id} className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden flex flex-col transition hover:shadow-md">
+                    <div className={`${service.color || 'bg-blue-50'} ${service.borderColor || 'border-blue-200'} p-6 flex flex-col items-center justify-center text-center relative border-b border-gray-100`}>
+                      {service.imageUrl ? (
+                        <img src={service.imageUrl} alt={service.name} className="w-20 h-20 object-cover rounded-full border-4 border-white shadow-sm mb-4" />
+                      ) : (
+                        <div className="w-16 h-16 bg-white rounded-full flex flex-shrink-0 items-center justify-center shadow-sm mb-4">
+                          <span className="text-3xl">{service.icon || '📋'}</span>
+                        </div>
+                      )}
+                      <h4 className="text-lg font-semibold text-gray-900">{service.name}</h4>
+                    </div>
+                    <div className="p-5 flex-1 flex flex-col">
+                      <p className="text-sm text-gray-600 line-clamp-3 mb-4 flex-1">
+                        {service.description || 'No description provided for this service.'}
+                      </p>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-lg font-bold text-blue-600">Rs. {service.price || 0}</span>
+                        <button 
+                          onClick={() => handleApplyClick(service)}
+                          className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-200 bg-gray-50">
+                  <h3 className="text-xl font-bold text-gray-900">My Recent Requests</h3>
+                  <p className="mt-1 text-sm text-gray-500">Latest service requests with status and payment details.</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left divide-y divide-gray-200">
+                    <thead className="bg-white">
+                      <tr>
+                        <th className="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Request ID</th>
+                        <th className="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Service Name</th>
+                        <th className="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                        <th className="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Payment</th>
+                        <th className="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Submitted Date</th>
+                        <th className="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {requests.slice(0, 5).map((request) => {
+                        const serviceItem = services.find(s => s.id === request.serviceId);
+                        const paymentStatus = request.status === 'pending_payment' ? 'Pending' : request.status === 'work_completed' ? 'Paid' : request.status === 'approved' ? 'Paid' : request.status === 'rejected' ? 'Failed' : 'In Progress';
+                        const statusLabel = request.status === 'pending_payment' ? 'Waiting for payment' : request.status === 'pending_review' ? 'Under review' : request.status === 'approved' ? 'Approved' : request.status === 'work_completed' ? 'Completed' : 'Pending';
+                        return (
+                          <tr key={request.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-4 text-sm font-medium text-gray-800">{request.id.slice(-8).toUpperCase()}</td>
+                            <td className="px-4 py-4 text-sm text-gray-600">{serviceItem?.name || 'Service unavailable'}</td>
+                            <td className="px-4 py-4 text-sm">
+                              <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-700">{statusLabel}</span>
+                            </td>
+                            <td className="px-4 py-4 text-sm text-gray-600">{paymentStatus}</td>
+                            <td className="px-4 py-4 text-sm text-gray-600">{new Date(request.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                            <td className="px-4 py-4 text-sm">
+                              <Link href="/user/applications" className="inline-flex items-center justify-center rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+                                Track
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {requests.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
+                            No recent requests available. Start by applying for a service.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
-            {/* Notices taking up 1 column */}
-            <div className="lg:col-span-1">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900">Notices</h3>
-              </div>
-              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col max-h-[600px]">
-                <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
-                   {notices.length === 0 ? (
-                     <div className="text-center py-10">
-                       <FaBell className="text-gray-300 text-4xl mx-auto mb-3" />
-                       <p className="text-sm text-gray-500 italic">No new notices at the moment.</p>
-                     </div>
-                   ) : notices.map(n => (
-                     <div key={n.id} className="border-b border-gray-100 last:border-0 pb-4 mb-4 last:pb-0 last:mb-0">
-                        <div className="flex items-start gap-4">
-                          <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600 flex-shrink-0">
-                            <FaBell size={18} />
-                          </div>
-                         <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                              <p className="text-sm font-bold text-gray-900 leading-tight">{n.title}</p>
-                              <button 
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleDeleteNotice(n.id);
-                                }}
-                                className="text-gray-300 hover:text-red-500 transition-colors p-1"
-                                title="Discard"
-                              >
-                                <FaTrashAlt size={12} />
-                              </button>
-                            </div>
-                            <p className="text-sm text-gray-600 mt-1.5 line-clamp-3">{n.message}</p>
-                          </div>
-                        </div>
-                     </div>
-                   ))}
+            <div className="lg:col-span-4 space-y-6">
+              <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-200 bg-gray-50">
+                  <h3 className="text-xl font-bold text-gray-900">Notices</h3>
                 </div>
-                <div className="p-4 bg-gray-50 border-t border-gray-200 text-center shrink-0">
+                <div className="p-6 overflow-y-auto custom-scrollbar max-h-[420px] space-y-4">
+                  {notices.length === 0 ? (
+                    <div className="text-center py-12">
+                      <FaBell className="mx-auto text-4xl text-gray-300 mb-3" />
+                      <p className="text-sm text-gray-500 italic">No new notices at the moment.</p>
+                    </div>
+                  ) : notices.map(n => (
+                    <div key={n.id} className="rounded-3xl border border-gray-100 bg-gray-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{n.title}</p>
+                          <p className="mt-2 text-sm text-gray-600">{n.message}</p>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleDeleteNotice(n.id);
+                          }}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          title="Remove notice"
+                        >
+                          <FaTrashAlt />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 text-center">
                   <Link href="/user/notices" className="text-sm font-semibold text-blue-600 hover:text-blue-800">
                     View All Notices
                   </Link>
                 </div>
               </div>
+
+              <div className="bg-white border border-gray-200 rounded-3xl shadow-sm p-6">
+                <div className="mb-5">
+                  <h3 className="text-xl font-bold text-gray-900">Quick Actions</h3>
+                  <p className="text-sm text-gray-500 mt-1">Jump to common tasks for your account.</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Link href="/user/services" className="rounded-3xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <FaPaperPlane className="text-blue-600" />
+                      Apply for Service
+                    </div>
+                  </Link>
+                  <Link href="/user/applications" className="rounded-3xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <FaClipboardList className="text-blue-600" />
+                      Track Request
+                    </div>
+                  </Link>
+                  <Link href="/user/history" className="rounded-3xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <FaHistory className="text-blue-600" />
+                      View History
+                    </div>
+                  </Link>
+                  <Link href="/user/send-notice" className="rounded-3xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <FaPhoneAlt className="text-blue-600" />
+                      Contact Admin
+                    </div>
+                  </Link>
+                </div>
+              </div>
             </div>
-            
           </div>
         </div>
 

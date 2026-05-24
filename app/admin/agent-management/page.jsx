@@ -162,6 +162,16 @@ export default function AgentManagementPage() {
                     {selectedAgent.name}
                   </h1>
                   <p className="text-gray-500 font-medium">Payment & Financial Management</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3 border border-slate-200">
+                      <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Email</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{selectedAgent.email || 'Not provided'}</p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3 border border-slate-200">
+                      <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Phone</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{selectedAgent.phoneNumber || 'Not provided'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -384,7 +394,10 @@ export default function AgentManagementPage() {
                   </div>
                   
                   <h3 className="text-lg font-bold text-gray-900 mb-1">{agent.name}</h3>
-                  <p className="text-sm text-gray-500 mb-6 truncate">{agent.email}</p>
+                  <p className="text-sm text-gray-500 truncate">{agent.email}</p>
+                  {agent.phoneNumber && (
+                    <p className="text-sm text-gray-500 mt-1 truncate">{agent.phoneNumber}</p>
+                  )}
                   
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between items-center text-sm">
