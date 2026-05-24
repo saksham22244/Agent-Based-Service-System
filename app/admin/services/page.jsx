@@ -30,7 +30,10 @@ export default function ServicePage() {
     try {
       const response = await fetch(`/api/admin/services/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
         body: JSON.stringify({ price: Number(editPriceValue) }),
       });
       if (!response.ok) throw new Error('Failed to update price');
@@ -89,7 +92,10 @@ export default function ServicePage() {
     try {
       const response = await fetch(`/api/admin/services/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
         body: JSON.stringify({ approvalStatus: status }),
       });
 
@@ -159,6 +165,9 @@ export default function ServicePage() {
 
       const response = await fetch('/api/admin/services', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
         body: formData,
       });
 
@@ -207,6 +216,9 @@ export default function ServicePage() {
       setError('');
       const response = await fetch(`/api/admin/services/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
       });
 
       if (!response.ok) {
