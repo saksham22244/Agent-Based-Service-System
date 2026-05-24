@@ -260,7 +260,7 @@ export default function UserHomePage() {
                             <td className="px-4 py-4 text-sm text-gray-600">{paymentStatus}</td>
                             <td className="px-4 py-4 text-sm text-gray-600">{new Date(request.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                             <td className="px-4 py-4 text-sm">
-                              <Link href="/user/applications" className="inline-flex items-center justify-center rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+                              <Link href="/user/applications" className="inline-flex items-center justify-center rounded-2xl border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-800 transition hover:bg-green-100">
                                 Track
                               </Link>
                             </td>
@@ -281,44 +281,6 @@ export default function UserHomePage() {
             </div>
 
             <div className="lg:col-span-4 space-y-6">
-              <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
-                <div className="px-6 py-5 border-b border-gray-200 bg-gray-50">
-                  <h3 className="text-xl font-bold text-gray-900">Notices</h3>
-                </div>
-                <div className="p-6 overflow-y-auto custom-scrollbar max-h-[420px] space-y-4">
-                  {notices.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FaBell className="mx-auto text-4xl text-gray-300 mb-3" />
-                      <p className="text-sm text-gray-500 italic">No new notices at the moment.</p>
-                    </div>
-                  ) : notices.map(n => (
-                    <div key={n.id} className="rounded-3xl border border-gray-100 bg-gray-50 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{n.title}</p>
-                          <p className="mt-2 text-sm text-gray-600">{n.message}</p>
-                        </div>
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleDeleteNotice(n.id);
-                          }}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
-                          title="Remove notice"
-                        >
-                          <FaTrashAlt />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 text-center">
-                  <Link href="/user/notices" className="text-sm font-semibold text-blue-600 hover:text-blue-800">
-                    View All Notices
-                  </Link>
-                </div>
-              </div>
-
                 <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
                 <div className="px-6 py-5 bg-white">
                   <h3 className="text-xl font-bold text-gray-900">Agent Service Information</h3>
@@ -349,15 +311,15 @@ export default function UserHomePage() {
                   <div className="pt-4 border-t border-gray-100">
                     <p className="text-xs uppercase tracking-[0.24em] text-gray-500">Social</p>
                     <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-gray-900">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-gray-700">
+                      <a href="https://facebook.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-gray-700 hover:bg-slate-200 transition">
                         <FaFacebookF className="text-blue-600" /> Facebook
-                      </span>
-                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-gray-700">
+                      </a>
+                      <a href="https://instagram.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-gray-700 hover:bg-slate-200 transition">
                         <FaInstagram className="text-pink-500" /> Instagram
-                      </span>
-                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-gray-700">
+                      </a>
+                      <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-gray-700 hover:bg-slate-200 transition">
                         <FaLinkedinIn className="text-blue-700" /> LinkedIn
-                      </span>
+                      </a>
                     </div>
                   </div>
                 </div>
