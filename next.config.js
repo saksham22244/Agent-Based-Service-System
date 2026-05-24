@@ -13,6 +13,10 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    turbopackUseSystemTlsCerts: true,
+  },
+  turbopack: {
+    root: __dirname,
   },
   allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev'],
 };
