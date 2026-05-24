@@ -1,6 +1,7 @@
 'use client';
 
 import Sidebar from '@/components/Sidebar';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { FaPlus, FaPen, FaBell, FaEnvelope, FaCertificate, FaUserCheck, FaTimes, FaCheck, FaPalette, FaIcons, FaImage, FaListAlt, FaTrash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -269,14 +270,14 @@ export default function ServicePage() {
             </div>
             
             <div className="flex items-center space-x-3 md:space-x-6">
-              <button className="flex items-center space-x-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm">
+              <Link href="/admin/notices" className="inline-flex items-center space-x-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm">
                 <FaBell className="text-sm" />
                 <span className="font-medium">NOTICE</span>
-              </button>
-              <button className="flex items-center space-x-2 px-3 py-1.5 md:px-4 md:py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm">
+              </Link>
+              <Link href="/admin/requests" className="inline-flex items-center space-x-2 px-3 py-1.5 md:px-4 md:py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm">
                 <FaEnvelope className="text-sm" />
                 <span className="font-medium">REQUEST</span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
