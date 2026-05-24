@@ -172,12 +172,12 @@ export default function UserHomePage() {
             <div className="bg-white rounded-3xl shadow-sm p-6">
               <p className="text-sm font-medium text-gray-500">Pending Requests</p>
               <p className="mt-4 text-3xl font-semibold text-gray-900">{requests.filter(req => !['work_completed','rejected'].includes(req.status)).length}</p>
-              <p className="mt-3 text-sm text-gray-500">Requests still awaiting review, payment or approval.</p>
+              <p className="mt-3 text-sm text-gray-500">Requests waiting for payment, review, or processing.</p>
             </div>
             <div className="bg-white rounded-3xl shadow-sm p-6">
               <p className="text-sm font-medium text-gray-500">Completed Requests</p>
               <p className="mt-4 text-3xl font-semibold text-gray-900">{requests.filter(req => req.status === 'work_completed').length}</p>
-              <p className="mt-3 text-sm text-gray-500">Requests marked complete by the support team.</p>
+              <p className="mt-3 text-sm text-gray-500">Requests completed successfully.</p>
             </div>
           </div>
 
@@ -283,7 +283,7 @@ export default function UserHomePage() {
             <div className="lg:col-span-4 space-y-6">
                 <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
                 <div className="px-6 py-5 bg-white">
-                  <h3 className="text-xl font-bold text-gray-900">Agent Service Information</h3>
+                  <h3 className="text-xl font-bold text-gray-900">Service Contact Information</h3>
                   <p className="mt-1 text-sm text-gray-500">If you need help, use the contact details below.</p>
                 </div>
                 <div className="px-6 pb-6 pt-4 space-y-4 text-sm text-gray-700">
@@ -334,7 +334,7 @@ export default function UserHomePage() {
                   <Link href="/user/services" className="rounded-3xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
                     <div className="flex items-center gap-3">
                       <FaPaperPlane className="text-blue-600" />
-                      Apply for Service
+                      Browse Services
                     </div>
                   </Link>
                   <Link href="/user/applications" className="rounded-3xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
