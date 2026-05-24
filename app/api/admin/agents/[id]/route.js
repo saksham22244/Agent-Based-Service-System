@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import { agentDb } from '@/lib/db';
-import { unlink } from 'fs/promises';
-import { join } from 'path';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
 import { requireAdmin } from '@/lib/auth';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 /**
  * GET /api/admin/agents/[id]
@@ -67,32 +64,7 @@ export async function PATCH(request, { params }) {
 
       // Handle photo upload
       if (photo && photo.size > 0) {
-        // Delete old photo if exists
-        const existingAgent = await agentDb.getById(id);
-        if (existingAgent?.photoUrl) {
-          try {
-            const oldPhotoPath = join(process.cwd(), 'public', existingAgent.photoUrl);
-            await unlink(oldPhotoPath);
-          } catch (error) {
-            console.error('Error deleting old photo:', error);
-          }
-        }
-
-        // Save new photo
-        const bytes = await photo.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
-        const uploadsDir = join(process.cwd(), 'public', 'uploads', 'agents');
-        if (!existsSync(uploadsDir)) {
-          await mkdir(uploadsDir, { recursive: true });
-        }
-
-        const timestamp = Date.now();
-        const filename = `${timestamp}-${photo.name}`;
-        const filepath = join(uploadsDir, filename);
-
-        await writeFile(filepath, buffer);
-        updateData.photoUrl = `/uploads/agents/${filename}`;
+        updateData.photoUrl = await uploadToCloudinary(photo, 'agents');
       }
     } else {
       // Handle JSON data
@@ -142,16 +114,8 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Delete photo file if exists
-    if (agent.photoUrl) {
-      try {
-        const photoPath = join(process.cwd(), 'public', agent.photoUrl);
-        await unlink(photoPath);
-      } catch (error) {
-        // Ignore file deletion errors
-        console.error('Error deleting photo:', error);
-      }
-    }
+    // Delete photo file if exists (Cloudinary manages deletion separately)
+    // Local file deletion removed — images are stored on Cloudinary
 
     const success = await agentDb.delete(id);
 

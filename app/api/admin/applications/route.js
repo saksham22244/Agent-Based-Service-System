@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { applicationDb, serviceDb } from '@/lib/db';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 export async function GET(request) {
   try {
@@ -69,22 +67,7 @@ export async function POST(request) {
     for (const [key, value] of formData.entries()) {
       if (!['userId', 'serviceId', 'formData'].includes(key)) {
         if (value instanceof File && value.size > 0) {
-          const bytes = await value.arrayBuffer();
-          const buffer = Buffer.from(bytes);
-
-          const uploadsDir = join(process.cwd(), 'public', 'uploads', 'applications');
-          if (!existsSync(uploadsDir)) {
-            await mkdir(uploadsDir, { recursive: true });
-          }
-
-          const timestamp = Date.now();
-          // Remove spaces/special characters from filename
-          const safeName = value.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
-          const filename = `${timestamp}-${safeName}`;
-          const filepath = join(uploadsDir, filename);
-
-          await writeFile(filepath, buffer);
-          parsedFormData[key] = `/uploads/applications/${filename}`;
+          parsedFormData[key] = await uploadToCloudinary(value, 'applications');
         } else if (!(value instanceof File)) {
           // If it's just raw text outside the JSON block, assign it natively
           parsedFormData[key] = value;

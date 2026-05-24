@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { agentDb } from '@/lib/db';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
 import { requireAdmin } from '@/lib/auth';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 /**
  * GET /api/admin/agents
@@ -104,25 +102,7 @@ export async function POST(request) {
 
     // Handle photo upload
     if (photo && photo.size > 0) {
-      const bytes = await photo.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = join(process.cwd(), 'public', 'uploads', 'agents');
-      if (!existsSync(uploadsDir)) {
-        await mkdir(uploadsDir, { recursive: true });
-      }
-
-      // Generate unique filename
-      const timestamp = Date.now();
-      const filename = `${timestamp}-${photo.name}`;
-      const filepath = join(uploadsDir, filename);
-
-      // Save file
-      await writeFile(filepath, buffer);
-
-      // Set photo URL
-      photoUrl = `/uploads/agents/${filename}`;
+      photoUrl = await uploadToCloudinary(photo, 'agents');
     }
 
     const newAgent = await agentDb.create({

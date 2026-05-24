@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
 import { agentDb, userDb } from '@/lib/db';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { AgentSchema } from '@/lib/schemas';
 import { sendAccountCreatedEmail } from '@/lib/email';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 // GET is public — used by admin dashboard to list agents for selection
 export async function GET() {
@@ -54,25 +52,7 @@ export async function POST(request) {
 
     // Handle photo upload
     if (photo && photo.size > 0) {
-      const bytes = await photo.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = join(process.cwd(), 'public', 'uploads', 'agents');
-      if (!existsSync(uploadsDir)) {
-        await mkdir(uploadsDir, { recursive: true });
-      }
-
-      // Generate unique filename
-      const timestamp = Date.now();
-      const filename = `${timestamp}-${photo.name}`;
-      const filepath = join(uploadsDir, filename);
-
-      // Save file
-      await writeFile(filepath, buffer);
-
-      // Set photo URL
-      photoUrl = `/uploads/agents/${filename}`;
+      photoUrl = await uploadToCloudinary(photo, 'agents');
     }
 
     // Check if email already exists (as user or agent)

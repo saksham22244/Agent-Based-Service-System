@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyJWT, requireAdmin } from '@/lib/auth';
 import { serviceDb } from '@/lib/db';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 /**
  * GET /api/admin/services
@@ -118,20 +116,7 @@ export async function POST(request) {
     // Handle Image upload dynamically
     let imageUrl = null;
     if (image && image.size > 0) {
-      const bytes = await image.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const uploadsDir = join(process.cwd(), 'public', 'uploads', 'services');
-      if (!existsSync(uploadsDir)) {
-        await mkdir(uploadsDir, { recursive: true });
-      }
-
-      const timestamp = Date.now();
-      const filename = `${timestamp}-${image.name}`;
-      const filepath = join(uploadsDir, filename);
-
-      await writeFile(filepath, buffer);
-      imageUrl = `/uploads/services/${filename}`;
+      imageUrl = await uploadToCloudinary(image, 'services');
     }
 
     // Admin creations are auto-approved, agent creations are held for review
