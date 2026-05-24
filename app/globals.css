@@ -21,7 +21,14 @@
 }
 
 html {
-  font-size: 80%;
+  font-size: 90%; /* ~14.4px on desktop — matches 90% zoom look */
+}
+
+/* On mobile, restore full size for readability */
+@media (max-width: 768px) {
+  html {
+    font-size: 100%;
+  }
 }
 
 body {
