@@ -266,10 +266,10 @@ export default function DashboardPage() {
   const paginatedItems = filteredItems.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Top Header */}
         <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 flex-shrink-0"></div>
         <div className="bg-white px-6 py-4 md:px-6 pl-16 sm:pl-6 border-b flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between shadow-sm gap-4">
@@ -339,8 +339,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden w-full">
-          <div className="p-6 flex flex-col flex-1 min-h-0">
+        <div className="flex-1 flex flex-col w-full">
+          <div className="p-4 flex flex-col flex-1">
 
             {/* Filters and Search */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 flex-shrink-0">
