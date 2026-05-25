@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaEye, FaTrash, FaCheck, FaTimes, FaSearch, FaUser, FaUserTie, FaPlus, FaFilter, FaBullhorn } from 'react-icons/fa';
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { MobileHeader } from '@/components/Sidebar';
 import Image from 'next/image';
 import UserForm from '@/components/UserForm';
 import AgentForm from '@/components/AgentForm';
@@ -270,9 +270,12 @@ export default function DashboardPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Top Header */}
-        <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 flex-shrink-0"></div>
-        <div className="bg-white px-6 py-4 md:px-6 pl-16 sm:pl-6 border-b flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between shadow-sm gap-4">
+        {/* Mobile header with hamburger built in */}
+        <MobileHeader title="Admin Dashboard" subtitle="Manage users, agents, and system settings." />
+
+        {/* Desktop header */}
+        <div className="hidden lg:flex h-1 bg-gradient-to-r from-blue-500 to-indigo-600 flex-shrink-0"></div>
+        <div className="hidden lg:flex bg-white px-6 py-4 border-b flex-shrink-0 flex-col sm:flex-row sm:items-center justify-between shadow-sm gap-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-xs text-gray-500 mt-1">Manage users, agents, and system settings.</p>

@@ -1,6 +1,6 @@
 'use client';
 
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { MobileHeader } from '@/components/Sidebar';
 import { useState, useEffect } from 'react';
 import { FaCheckCircle, FaTimesCircle, FaFileAlt, FaEye } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -222,14 +222,15 @@ export default function RequestPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 flex-shrink-0"></div>
-        <div className="bg-white px-6 py-4 border-b flex-shrink-0 flex items-center justify-between shadow-sm">
+      <div className="flex-1 flex flex-col min-h-screen overflow-y-auto">
+        <MobileHeader title="Applications" subtitle="Review and manage recent requests." />
+        <div className="hidden lg:block h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+        <div className="hidden lg:flex bg-white px-6 py-4 border-b flex-shrink-0 items-center justify-between shadow-sm gap-3">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Applications</h1>
             <p className="text-xs text-gray-500 mt-1">Review and manage recent requests.</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 flex-wrap">
             <input 
               type="text" 
               placeholder="Search by ticket, user, or email..." 
@@ -238,15 +239,15 @@ export default function RequestPage() {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="border border-gray-300 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none w-64 placeholder-gray-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-64 placeholder-gray-500"
             />
-            <span className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100 tracking-wide">
+            <span className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100 tracking-wide whitespace-nowrap">
               {applications.filter(a => a.status === 'pending_review').length} Pending Reviews
             </span>
           </div>
         </div>
 
-        <div className="flex-1 p-6 overflow-y-auto w-full">
+        <div className="flex-1 p-4 w-full">
           {loading ? (
              <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div></div>
           ) : applications.length === 0 ? (
@@ -257,49 +258,84 @@ export default function RequestPage() {
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Service Details</th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Applicant</th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date Submitted</th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                    <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedApps.map((app) => {
-                    const svc = servicesMap[app.serviceId];
-                    const usr = usersMap[app.userId];
-                    return (
-                      <tr key={app.id} className="hover:bg-blue-50/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-bold text-gray-900">{svc ? svc.name.replace('\n', ' ') : 'Unknown Service'}</div>
-                          <div className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 w-max font-mono mt-1 pt-0">TKT-{app.id.slice(-8).toUpperCase()}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-semibold text-gray-800">{usr ? usr.name : 'Unknown User'}</div>
+              {/* Desktop table */}
+              <div className="hidden lg:block">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Service Details</th>
+                      <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Applicant</th>
+                      <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date Submitted</th>
+                      <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                      <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paginatedApps.map((app) => {
+                      const svc = servicesMap[app.serviceId];
+                      const usr = usersMap[app.userId];
+                      return (
+                        <tr key={app.id} className="hover:bg-blue-50/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-gray-900">{svc ? svc.name.replace('\n', ' ') : 'Unknown Service'}</div>
+                            <div className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 w-max font-mono mt-1">TKT-{app.id.slice(-8).toUpperCase()}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-semibold text-gray-800">{usr ? usr.name : 'Unknown User'}</div>
+                            <div className="text-xs text-gray-500">{usr ? usr.email : ''}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
+                            {new Date(app.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(app.status)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onClick={() => setViewedApp(app)} className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg transition-colors border border-blue-200">
+                              <FaEye className="mr-2" /> View Details
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile/Tablet cards */}
+              <div className="lg:hidden divide-y divide-gray-200">
+                {paginatedApps.map((app) => {
+                  const svc = servicesMap[app.serviceId];
+                  const usr = usersMap[app.userId];
+                  return (
+                    <div key={app.id} className="p-4">
+                      {/* Service name + ticket */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="font-bold text-gray-900 text-sm">{svc ? svc.name.replace('\n', ' ') : 'Unknown Service'}</div>
+                          <div className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 font-mono mt-1 w-fit">TKT-{app.id.slice(-8).toUpperCase()}</div>
+                        </div>
+                        {getStatusBadge(app.status)}
+                      </div>
+                      {/* Applicant */}
+                      <div className="flex gap-2 mb-1">
+                        <span className="text-xs text-gray-400 w-16 flex-shrink-0">Applicant:</span>
+                        <div>
+                          <div className="text-xs font-semibold text-gray-800">{usr ? usr.name : 'Unknown User'}</div>
                           <div className="text-xs text-gray-500">{usr ? usr.email : ''}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
-                          {new Date(app.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(app.status)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button 
-                            onClick={() => setViewedApp(app)}
-                            className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 font-bold rounded-lg transition-colors border border-blue-200"
-                          >
-                            <FaEye className="mr-2" /> View Details
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                      </div>
+                      {/* Date */}
+                      <div className="flex gap-2 mb-3">
+                        <span className="text-xs text-gray-400 w-16 flex-shrink-0">Date:</span>
+                        <span className="text-xs text-gray-600">{new Date(app.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      {/* Action */}
+                      <button onClick={() => setViewedApp(app)} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg transition-colors border border-blue-200 text-sm">
+                        <FaEye /> View Details
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
