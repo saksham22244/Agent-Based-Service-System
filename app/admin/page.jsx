@@ -272,7 +272,7 @@ export default function DashboardPage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header */}
         <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 flex-shrink-0"></div>
-        <div className="bg-white px-6 py-4 border-b flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between shadow-sm gap-4">
+        <div className="bg-white px-6 py-4 md:px-6 pl-16 md:pl-6 border-b flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between shadow-sm gap-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-xs text-gray-500 mt-1">Manage users, agents, and system settings.</p>
@@ -404,9 +404,10 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Table Container - Auto Height */}
+            {/* Table Container - responsive: table on desktop, cards on mobile */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="overflow-x-auto">
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full table-fixed divide-y divide-gray-200 border-collapse">
                   <colgroup>
                     <col className="w-[22%]" />
@@ -417,36 +418,18 @@ export default function DashboardPage() {
                   </colgroup>
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Phone
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Category
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Actions
-                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Phone</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Category</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {loading ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-gray-500 text-sm">
-                          Loading...
-                        </td>
-                      </tr>
+                      <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500 text-sm">Loading...</td></tr>
                     ) : filteredItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-gray-500 text-sm">
-                          No items found
-                        </td>
-                      </tr>
+                      <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500 text-sm">No items found</td></tr>
                     ) : (
                       paginatedItems.map((item) => (
                         <tr key={item.id} className="hover:bg-gray-50 transition-colors">
@@ -459,123 +442,30 @@ export default function DashboardPage() {
                                   <span className="text-xs font-bold text-slate-400 capitalize">{item.name?.charAt(0) || 'U'}</span>
                                 )}
                               </div>
-                              <div className="text-sm font-medium text-gray-900 truncate" title={item.name}>
-                                {item.name}
-                              </div>
+                              <div className="text-sm font-medium text-gray-900 truncate" title={item.name}>{item.name}</div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 align-middle">
-                            <div className="text-sm text-gray-600 truncate" title={item.phoneNumber}>
-                              {item.phoneNumber}
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 align-middle">
-                            <div
-                              className="text-sm text-gray-600 truncate cursor-help"
-                              title={item.email}
-                            >
-                              {item.email}
-                            </div>
-                          </td>
+                          <td className="px-4 py-4 align-middle"><div className="text-sm text-gray-600 truncate">{item.phoneNumber}</div></td>
+                          <td className="px-4 py-4 align-middle"><div className="text-sm text-gray-600 truncate" title={item.email}>{item.email}</div></td>
                           <td className="px-4 py-4 align-middle">
                             <div className="flex flex-col gap-1">
-                              <span className="inline-flex items-center px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium w-fit">
-                                {item.type === 'user' ? 'Users' : 'Agent'}
-                              </span>
+                              <span className="inline-flex items-center px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium w-fit">{item.type === 'user' ? 'Users' : 'Agent'}</span>
                               {item.type === 'agent' && (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium w-fit ${item.approved
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-yellow-100 text-yellow-800'
-                                  }`}>
-                                  {item.approved ? 'Approved' : 'Pending'}
-                                </span>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium w-fit ${item.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{item.approved ? 'Approved' : 'Pending'}</span>
                               )}
                             </div>
                           </td>
                           <td className="px-4 py-4 align-middle">
-                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setViewModal(item);
-                                }}
-                                className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded p-1.5 transition-colors"
-                                title="View Details"
-                                type="button"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                  />
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                  />
-                                </svg>
+                            <div className="flex items-center gap-2">
+                              <button onClick={(e) => { e.stopPropagation(); setViewModal(item); }} className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded p-1.5 transition-colors" title="View Details">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                               </button>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleDeleteClick(item.id, item.type);
-                                }}
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }}
-                                className="inline-flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded p-1.5 transition-colors"
-                                title="Delete"
-                                type="button"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                  />
-                                </svg>
+                              <button onClick={(e) => { e.stopPropagation(); handleDeleteClick(item.id, item.type); }} className="inline-flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded p-1.5 transition-colors" title="Delete">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                               </button>
                               {item.type === 'agent' && !item.approved && (
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setApproveConfirm({ id: item.id, name: item.name });
-                                  }}
-                                  className="inline-flex items-center justify-center text-green-600 hover:text-green-800 hover:bg-green-50 rounded p-1.5 transition-colors"
-                                  title="Approve Agent"
-                                  type="button"
-                                >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M5 13l4 4L19 7"
-                                    />
-                                  </svg>
+                                <button onClick={(e) => { e.stopPropagation(); setApproveConfirm({ id: item.id, name: item.name }); }} className="inline-flex items-center justify-center text-green-600 hover:text-green-800 hover:bg-green-50 rounded p-1.5 transition-colors" title="Approve Agent">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                 </button>
                               )}
                             </div>
@@ -585,6 +475,55 @@ export default function DashboardPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden divide-y divide-gray-200">
+                {loading ? (
+                  <div className="p-6 text-center text-gray-500 text-sm">Loading...</div>
+                ) : filteredItems.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500 text-sm">No items found</div>
+                ) : (
+                  paginatedItems.map((item) => (
+                    <div key={item.id} className="p-4 hover:bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 flex-shrink-0">
+                            {item.profilePicture || item.photoUrl ? (
+                              <img src={item.profilePicture || item.photoUrl} alt={item.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-sm font-bold text-slate-400 capitalize">{item.name?.charAt(0) || 'U'}</span>
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">{item.name}</div>
+                            <div className="text-xs text-gray-500">{item.phoneNumber}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setViewModal(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          </button>
+                          <button onClick={() => handleDeleteClick(item.id, item.type)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                          {item.type === 'agent' && !item.approved && (
+                            <button onClick={() => setApproveConfirm({ id: item.id, name: item.name })} className="p-2 text-green-600 hover:bg-green-50 rounded-lg">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 truncate mb-2">{item.email}</div>
+                      <div className="flex gap-2">
+                        <span className="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{item.type === 'user' ? 'User' : 'Agent'}</span>
+                        {item.type === 'agent' && (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{item.approved ? 'Approved' : 'Pending'}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* "Show 1 2" style pager - Inner */}
