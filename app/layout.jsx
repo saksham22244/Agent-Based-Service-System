@@ -16,6 +16,7 @@ export const viewport = {
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import PwaRegister from "@/components/PwaRegister";
+import BottomNav from "@/components/BottomNav";
 
 export default function RootLayout({ children }) {
   return (
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
         className="antialiased"
       >
         {children}
+        <BottomNav />
         <PwaRegister />
         <ToastContainer position="top-right" autoClose={3000} />
       </body>
