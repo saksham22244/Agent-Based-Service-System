@@ -8,29 +8,30 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-toastify';
 
 export default function LoginPage() {
+  // ========== STATE VARIABLES ==========
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [showRoleModal, setShowRoleModal] = useState(false);
-  const [googleData, setGoogleData] = useState(null);
-  const [googleRole, setGoogleRole] = useState('user'); // default selection
+  const [email, setEmail] = useState('');           // Email input value
+  const [password, setPassword] = useState('');     // Password input value
+  const [error, setError] = useState('');           // Error message display
+  const [submitting, setSubmitting] = useState(false); // Loading state for button
+  const [showRoleModal, setShowRoleModal] = useState(false); // Role selection popup
+  const [googleData, setGoogleData] = useState(null); // Google user data from OAuth
+  const [googleRole, setGoogleRole] = useState('user'); // Selected role (user/agent)
 
-  //image URL for  login page
+  // ========== IMAGE URLs ==========
+  // Hero background image for left side
   const heroImageSrc = 'https://drive.google.com/uc?export=view&id=12ejbUJxqDC8cGp3t9ZJriA42Yh1j7E0K';
-
-  // Logo Url
+  // Logo image for right side
   const logoSrc = 'https://drive.google.com/uc?export=view&id=1Dq2CNVPgjj7-5si_GoT7xkEpXYwT57gy';
 
-  // Handles standard email/password login submission
+  // ========== EMAIL/PASSWORD LOGIN HANDLER ==========
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevents default form submission (page reload)
+    e.preventDefault(); // Prevent page reload on form submit
     setError('');
     setSubmitting(true);
 
     try {
-      // Calls the custom backend API route we analyzed earlier
+      // Send credentials to backend API
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,29 +41,26 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // IMPORTANT VIVA KNOWLEDGE: This is where session state is persisted locally.
-        // It saves the returned user data (and token if available) to localStorage.
+        // Save user session data to browser localStorage
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
 
         toast.success('Login successfully!');
 
-        // Delay redirect so the toast notification can be seen by the user
+        // Redirect after 1.5 seconds based on user role
         setTimeout(() => {
-          // Role-based routing: redirects users based on their assigned role
           if (data.user.role === 'admin' || data.user.role === 'superadmin') {
-            router.push('/admin');  // Admin goes to admin dashboard
+            router.push('/admin');  // Admin dashboard
           } else if (data.user.role === 'user') {
-            router.push('/user');  // Regular user goes to user dashboard
+            router.push('/user');   // Regular user dashboard
           } else if (data.user.role === 'agent') {
-            router.push('/agent');  // Agent goes to agent dashboard
+            router.push('/agent');  // Agent dashboard
           } else {
-            // Default fallback
-            router.push('/user');
+            router.push('/user');   // Fallback
           }
         }, 1500);
       } else {
-        // Custom error handling for Agents not yet approved by Admin
+        // Handle agent pending approval case
         if (data.error === 'PENDING_APPROVAL') {
           router.push('/agent/pending-approval');
         } else {
@@ -76,7 +74,7 @@ export default function LoginPage() {
     }
   };
 
-  // Handles successful authentication via Google OAuth
+  // ========== GOOGLE OAUTH SUCCESS HANDLER ==========
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       if (!credentialResponse.credential) {
@@ -84,7 +82,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Sends the Google-provided token to our backend for verification
+      // Send Google token to backend for verification
       const response = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,20 +91,17 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // If Google Auth succeeds but it's a first-time login
         if (data.status === 'NEW_USER') {
-          // Open role selector modal (User vs Agent) before finishing signup
+          // First time user - show role selection modal
           setGoogleData(data.googleData);
           setShowRoleModal(true);
         } else {
-          // Success login for an existing Google-linked account
+          // Existing user - save session and redirect
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
           toast.success('Login successfully!');
 
-          // Delay redirect so the toast notification can be seen by the user
           setTimeout(() => {
-            // Role-based routing
             if (data.user.role === 'admin' || data.user.role === 'superadmin') router.push('/admin');
             else if (data.user.role === 'user') router.push('/user');
             else if (data.user.role === 'agent') router.push('/agent');
@@ -114,7 +109,7 @@ export default function LoginPage() {
           }, 1500);
         }
       } else {
-        // Handles Agent pending approval status
+        // Handle agent pending approval
         if (data.error === 'PENDING_APPROVAL') {
           router.push('/agent/pending-approval');
         } else {
@@ -126,10 +121,12 @@ export default function LoginPage() {
     }
   };
 
+  // ========== COMPLETE GOOGLE SIGNUP WITH ROLE ==========
   const handleGoogleSignup = async () => {
     if (!googleData) return;
     setSubmitting(true);
     try {
+      // Send Google data + selected role to backend
       const response = await fetch('/api/auth/google/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -154,30 +151,32 @@ export default function LoginPage() {
     }
   };
 
+  // ========== RENDER LOGIN PAGE ==========
   return (
+    // Google OAuth Provider wrapper - enables Google Sign-In
     <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '282906055180-u6ktve2ganpfjip6l9mjh4ftc2r09mk9.apps.googleusercontent.com'}>
       <div className="min-h-screen w-full flex items-center justify-center bg-white font-sans">
         <div className="w-full h-screen bg-white overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 h-full">
 
-            {/* LEFT SIDE - Image fills entire box */}
+            {/* ========== LEFT SIDE - HERO IMAGE ========== */}
             <div className="relative bg-[#c7d3e3]">
               <Image
                 src={heroImageSrc}
                 alt="Login Illustration"
                 fill
-                className="object-cover"  // Changed from object-contain to object-cover
+                className="object-cover"
                 priority
                 sizes="50vw"
               />
-              {/* Optional overlay if image is too bright */}
+              {/* Dark overlay for better text contrast if needed */}
               <div className="absolute inset-0 bg-black/5"></div>
             </div>
 
-            {/* RIGHT SIDE - Everything remains exactly the same */}
-            <div className="flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12 bg-white">
+            {/* ========== RIGHT SIDE - LOGIN FORM ========== */}
+            <div className="flex-col justify-center px-10 md:px-20 lg:px-28 py-12 bg-slate-50">
 
-              {/* Logo - You can also update this if needed */}
+              {/* Logo Section - Circular container with brand logo */}
               <div className="flex justify-center mb-6">
                 <div className="h-40 w-40 rounded-full border border-slate-100 flex items-center justify-center bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-4 ring-slate-50 transition-all duration-300">
                   <Image
@@ -190,20 +189,21 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Heading */}
+              {/* Page Heading */}
               <h2 className="text-center text-3xl font-extrabold text-slate-800 tracking-tight mb-8">
                 Sign in to your account
               </h2>
 
-              {/* ERROR */}
+              {/* Error Message Display */}
               {error && (
                 <div className="mb-6 text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-lg shadow-sm">
                   {error}
                 </div>
               )}
 
-              {/* FORM */}
+              {/* Email/Password Login Form */}
               <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Email Input Field */}
                 <div className="space-y-1">
                   <input
                     type="email"
@@ -211,11 +211,12 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-black focus:border-blue-500 focus:outline-none"
                     suppressHydrationWarning
                   />
                 </div>
 
+                {/* Password Input Field */}
                 <div className="space-y-1">
                   <input
                     type="password"
@@ -223,11 +224,12 @@ export default function LoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 text-[15px] focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-400/10 transition-all duration-200 ease-in-out"
+                    className="w-full p-3 border border-gray-300 rounded-lg text-black focus:border-blue-500 focus:outline-none"
                     suppressHydrationWarning
                   />
                 </div>
 
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={submitting}
@@ -238,12 +240,14 @@ export default function LoginPage() {
                 </button>
               </form>
 
+              {/* OR Divider */}
               <div className="my-8 flex items-center justify-center">
                 <div className="flex-grow h-px bg-slate-200"></div>
                 <span className="px-4 text-xs font-semibold text-slate-400 tracking-wider uppercase">Or continue with</span>
                 <div className="flex-grow h-px bg-slate-200"></div>
               </div>
 
+              {/* Google Sign-In Button */}
               <div className="flex justify-center flex-col items-center gap-2">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
@@ -252,10 +256,10 @@ export default function LoginPage() {
                   size="large"
                   theme="outline"
                 />
-                <p className="text-xs text-slate-400 mt-3 font-medium">Sign in works for both Users and Agents</p>
+                <p className="text-xs text-slate-400 mt-3 font-medium">Sign in works for user and Agents</p>
               </div>
 
-              {/* LINKS */}
+              {/* Sign Up Links */}
               <div className="mt-8 text-sm text-center text-slate-500 space-y-3">
                 <p>
                   Don&apos;t have an account?{' '}
@@ -273,15 +277,22 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Role Selection Modal for New Google Sign In */}
+        {/* ========== ROLE SELECTION MODAL (For New Google Users) ========== */}
         {showRoleModal && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
             <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-8 text-center border border-slate-100">
+              
+              {/* Modal Heading */}
               <h2 className="text-2xl font-bold text-slate-800 mb-2 tracking-tight">Complete your Profile</h2>
+              
+              {/* Welcome Message */}
               <p className="text-sm text-slate-500 mb-8 font-medium">
                 Welcome {googleData?.name?.split(' ')[0]}! Are you signing up as a regular User or an Agent?
               </p>
+              
+              {/* Role Selection Buttons */}
               <div className="flex flex-col gap-4 mb-8">
+                {/* User Role Button */}
                 <button
                   onClick={() => setGoogleRole('user')}
                   className={`py-4 rounded-xl border-2 transition-all duration-200 ${googleRole === 'user' ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700 shadow-sm' : 'border-slate-100 text-slate-600 hover:border-slate-200 hover:bg-slate-50'}`}
@@ -289,6 +300,8 @@ export default function LoginPage() {
                   <strong className="block text-lg font-bold mb-1">User</strong>
                   <span className="text-xs font-medium opacity-80">Access everyday services</span>
                 </button>
+                
+                {/* Agent Role Button */}
                 <button
                   onClick={() => setGoogleRole('agent')}
                   className={`py-4 rounded-xl border-2 transition-all duration-200 ${googleRole === 'agent' ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700 shadow-sm' : 'border-slate-100 text-slate-600 hover:border-slate-200 hover:bg-slate-50'}`}
@@ -298,6 +311,7 @@ export default function LoginPage() {
                 </button>
               </div>
 
+              {/* Continue Button */}
               <button
                 onClick={handleGoogleSignup}
                 disabled={submitting}
@@ -305,6 +319,8 @@ export default function LoginPage() {
               >
                 {submitting ? 'Setting up...' : 'Continue'}
               </button>
+              
+              {/* Cancel Button */}
               <button
                 onClick={() => setShowRoleModal(false)}
                 className="text-sm font-medium text-slate-400 hover:text-slate-600 transition-colors"
