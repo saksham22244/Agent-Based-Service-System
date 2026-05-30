@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const [users, setUsers] = useState([]);
   const [agents, setAgents] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9; // Reduced strictly to perfectly fit viewport with more padding
+  const itemsPerPage = 4; // Reduced strictly to perfectly fit viewport with more padding
 
   useEffect(() => {
     fetchData();
