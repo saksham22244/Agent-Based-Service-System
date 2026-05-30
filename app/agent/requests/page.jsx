@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import { useState, useEffect } from 'react';
 import { FaCheckCircle, FaTimesCircle, FaFileAlt, FaEye } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function RequestPage() {
   const [applications, setApplications] = useState([]);
@@ -32,6 +33,7 @@ export default function RequestPage() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -87,82 +89,94 @@ export default function RequestPage() {
       return;
     }
 
-    if (!window.confirm(`Mark this application as ${status.toUpperCase()}?`)) return;
-
-    try {
-      const res = await fetch(`/api/applications/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-
-      if (!res.ok) throw new Error('Failed to update status');
-
-      // Optimistically update
-      setApplications(prev => prev.map(app => app.id === id ? { ...app, status } : app));
-      setViewedApp(null);
-      toast.success('Application status updated successfully.');
-    } catch (error) {
-      toast.error('Error updating application. Please try again.');
-    }
+    setConfirm({
+      message: `Mark this application as ${status.toUpperCase()}?`,
+      danger: status === 'rejected',
+      confirmText: status === 'approved' ? 'Approve' : 'Reject',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/applications/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+          });
+          if (!res.ok) throw new Error('Failed to update status');
+          setApplications(prev => prev.map(app => app.id === id ? { ...app, status } : app));
+          setViewedApp(null);
+          toast.success('Application status updated successfully.');
+        } catch (error) {
+          toast.error('Error updating application. Please try again.');
+        }
+      },
+    });
   };
 
   const handleClaimRequest = async (id) => {
-    if (!window.confirm('Are you sure you want to claim this application? You will be responsible for reviewing it.')) return;
-    try {
-      const userStr = localStorage.getItem('user');
-      const currentUser = userStr ? JSON.parse(userStr) : null;
-      if (!currentUser) return;
-
-      const res = await fetch(`/api/applications/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignedAgentId: currentUser.id })
-      });
-
-      if (!res.ok) throw new Error('Failed to claim');
-
-      setApplications(prev => prev.map(app => app.id === id ? { ...app, assignedAgentId: currentUser.id } : app));
-      setViewedApp(prev => ({ ...prev, assignedAgentId: currentUser.id }));
-      toast.success('Application claimed successfully! You can now review and approve/reject it.');
-    } catch (err) {
-      toast.error('Error claiming application. It might have been claimed by someone else already.');
-    }
+    setConfirm({
+      message: 'Are you sure you want to claim this application? You will be responsible for reviewing it.',
+      confirmText: 'Claim',
+      onConfirm: async () => {
+        try {
+          const userStr = localStorage.getItem('user');
+          const currentUser = userStr ? JSON.parse(userStr) : null;
+          if (!currentUser) return;
+          const res = await fetch(`/api/applications/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assignedAgentId: currentUser.id })
+          });
+          if (!res.ok) throw new Error('Failed to claim');
+          setApplications(prev => prev.map(app => app.id === id ? { ...app, assignedAgentId: currentUser.id } : app));
+          setViewedApp(prev => ({ ...prev, assignedAgentId: currentUser.id }));
+          toast.success('Application claimed successfully! You can now review and approve/reject it.');
+        } catch (err) {
+          toast.error('Error claiming application. It might have been claimed by someone else already.');
+        }
+      },
+    });
   };
 
   const handleTransferRequest = async (id) => {
     if (!selectedAgentTransfer) return toast.warning('Please select an agent to transfer to.');
-    if (!window.confirm('Are you sure you want to transfer this application to the selected agent?')) return;
-    try {
-      const res = await fetch(`/api/applications/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignedAgentId: selectedAgentTransfer })
-      });
-
-      if (!res.ok) throw new Error('Failed to transfer');
-
-      setApplications(prev => prev.map(app => app.id === id ? { ...app, assignedAgentId: selectedAgentTransfer } : app));
-      setViewedApp(prev => ({ ...prev, assignedAgentId: selectedAgentTransfer }));
-      toast.success('Application transferred successfully!');
-      setSelectedAgentTransfer('');
-    } catch (err) {
-      toast.error('Error transferring application.');
-    }
+    setConfirm({
+      message: 'Are you sure you want to transfer this application to the selected agent?',
+      confirmText: 'Transfer',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/applications/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assignedAgentId: selectedAgentTransfer })
+          });
+          if (!res.ok) throw new Error('Failed to transfer');
+          setApplications(prev => prev.map(app => app.id === id ? { ...app, assignedAgentId: selectedAgentTransfer } : app));
+          setViewedApp(prev => ({ ...prev, assignedAgentId: selectedAgentTransfer }));
+          toast.success('Application transferred successfully!');
+          setSelectedAgentTransfer('');
+        } catch (err) {
+          toast.error('Error transferring application.');
+        }
+      },
+    });
   };
 
   const handleDeleteApplication = async (id) => {
-    if (!window.confirm('Are you sure you want to completely delete this application record?')) return;
-    try {
-      const res = await fetch(`/api/applications/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      setApplications(prev => prev.filter(a => a.id !== id));
-      if (viewedApp?.id === id) setViewedApp(null);
-      toast.success('Application record deleted successfully.');
-    } catch (err) {
-      toast.error('Failed to delete application record.');
-      console.error(err);
-    }
+    setConfirm({
+      message: 'Are you sure you want to completely delete this application record?',
+      danger: true,
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/applications/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('Deletion failed');
+          setApplications(prev => prev.filter(a => a.id !== id));
+          if (viewedApp?.id === id) setViewedApp(null);
+          toast.success('Application record deleted successfully.');
+        } catch (err) {
+          toast.error('Failed to delete application record.');
+        }
+      },
+    });
   };
 
   const handleSendNotice = async (e) => {
@@ -557,6 +571,8 @@ export default function RequestPage() {
            </div>
         </div>
       )}
+
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

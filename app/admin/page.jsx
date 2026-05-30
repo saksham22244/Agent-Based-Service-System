@@ -582,23 +582,61 @@ export default function DashboardPage() {
       {/* View Details modal. */}
       {viewModal && (
         <div
-          className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm"
           onClick={() => setViewModal(null)}
         >
           <div
-            className="bg-white rounded-xl shadow-2xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all"
+            className="bg-white rounded-2xl shadow-2xl p-0 max-w-md w-full mx-4 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">View Details</h2>
-            <p className="text-gray-900 font-semibold">{viewModal.name}</p>
-            <p className="text-gray-700">{viewModal.email}</p>
-            <p className="text-gray-700">{viewModal.phoneNumber}</p>
-            <p className="text-gray-700">{viewModal.address}</p>
-
-            <div className="mt-6 flex justify-end">
+            {/* Header with photo */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 pt-8 pb-16 text-center relative">
               <button
                 onClick={() => setViewModal(null)}
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+              >
+                ✕
+              </button>
+              <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg mx-auto overflow-hidden bg-white flex items-center justify-center">
+                {viewModal.photoUrl || viewModal.profilePicture ? (
+                  <img
+                    src={viewModal.photoUrl || viewModal.profilePicture}
+                    alt={viewModal.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-4xl text-gray-400">👤</span>
+                )}
+              </div>
+              <h2 className="text-xl font-bold text-white mt-3">{viewModal.name}</h2>
+              <span className={`inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-bold ${
+                viewModal.approved ? 'bg-green-400 text-white' : 'bg-yellow-400 text-gray-900'
+              }`}>
+                {viewModal.approved ? 'Approved' : 'Pending Approval'}
+              </span>
+            </div>
+
+            {/* Details */}
+            <div className="px-6 -mt-8 pb-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+                {[
+                  { label: 'Email', value: viewModal.email },
+                  { label: 'Phone', value: viewModal.phoneNumber || 'Not provided' },
+                  { label: 'Address', value: viewModal.address || 'Not provided' },
+                  { label: 'eSewa / Payment', value: viewModal.paymentDetails || 'Not provided' },
+                  { label: 'Total Earnings', value: `Rs. ${viewModal.totalEarnings || 0}` },
+                  { label: 'Member Since', value: viewModal.createdAt ? new Date(viewModal.createdAt).toLocaleDateString() : 'N/A' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between items-center px-4 py-3">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
+                    <span className="text-sm font-medium text-gray-800 text-right max-w-[60%] truncate">{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setViewModal(null)}
+                className="mt-4 w-full py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-semibold text-sm"
               >
                 Close
               </button>

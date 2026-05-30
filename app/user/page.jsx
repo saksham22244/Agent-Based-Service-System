@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 
 import Sidebar from '@/components/Sidebar';
 import TopHeader from '@/components/TopHeader';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function UserHomePage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function UserHomePage() {
   const [dynamicValues, setDynamicValues] = useState({});       // Values from dynamic form fields
   const [fileUploads, setFileUploads] = useState({});           // Uploaded files for the application
   const [isSubmitting, setIsSubmitting] = useState(false);      // Prevent double submission
+  const [confirm, setConfirm] = useState(null);
 
   // ==================== APPLICATION HANDLERS ====================
   
@@ -129,16 +131,22 @@ export default function UserHomePage() {
    * @param {string} noticeId - ID of the notice to delete
    */
   const handleDeleteNotice = async (noticeId) => {
-    if (!window.confirm('Securely remove this notice?')) return;
-    try {
-      const res = await fetch(`/api/notices/${noticeId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setNotices(notices.filter(n => n.id !== noticeId));
-        toast.success('Notice removed');
-      }
-    } catch (err) {
-      toast.error('Failed to remove notice');
-    }
+    setConfirm({
+      message: 'Securely remove this notice?',
+      danger: true,
+      confirmText: 'Remove',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/notices/${noticeId}`, { method: 'DELETE' });
+          if (res.ok) {
+            setNotices(notices.filter(n => n.id !== noticeId));
+            toast.success('Notice removed');
+          }
+        } catch (err) {
+          toast.error('Failed to remove notice');
+        }
+      },
+    });
   };
 
   // ==================== INITIALIZATION ====================
@@ -559,6 +567,7 @@ export default function UserHomePage() {
           </div>
         )}
 
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
       </div>
     </div>
   );

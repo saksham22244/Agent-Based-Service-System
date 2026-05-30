@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import TopHeader from '@/components/TopHeader';
+import ConfirmModal from '@/components/ConfirmModal';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaCheckCircle, FaClock, FaDollarSign, FaTasks } from 'react-icons/fa';
@@ -14,6 +15,7 @@ export default function AgentWorkPage() {
   const [agentData, setAgentData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, pending, approved, completed
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -80,29 +82,31 @@ export default function AgentWorkPage() {
   };
 
   const handleUpdateStatus = async (id, status) => {
-    if (!window.confirm(`Mark this application as ${status.replace('_', ' ').toUpperCase()}?`)) return;
+    setConfirm({
+      message: `Mark this application as ${status.replace('_', ' ').toUpperCase()}?`,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/applications/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+          });
 
-    try {
-      const res = await fetch(`/api/applications/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
+          if (!res.ok) throw new Error('Failed to update status');
 
-      if (!res.ok) throw new Error('Failed to update status');
-
-      setApplications(prev => prev.map(app => app.id === id ? { ...app, status } : app));
-      
-      // Refresh data after payment completion
-    if (status === 'work_completed') {
-      toast.success('Work completed! 80% payment has been added to your earnings.');
-      fetchAgentData(agentData.id); // Refresh agent data to show updated earnings and payments
-    } else {
-      toast.success('Application status updated successfully.');
-    }
-    } catch (error) {
-      toast.error('Error updating application. Please try again.');
-    }
+          setApplications(prev => prev.map(app => app.id === id ? { ...app, status } : app));
+          
+          if (status === 'work_completed') {
+            toast.success('Work completed! 80% payment has been added to your earnings.');
+            fetchAgentData(agentData.id);
+          } else {
+            toast.success('Application status updated successfully.');
+          }
+        } catch (error) {
+          toast.error('Error updating application. Please try again.');
+        }
+      },
+    });
   };
 
   const getStatusBadge = (status) => {
@@ -460,6 +464,7 @@ export default function AgentWorkPage() {
       </div>
 
       <ToastContainer position="top-right" autoClose={3000} />
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

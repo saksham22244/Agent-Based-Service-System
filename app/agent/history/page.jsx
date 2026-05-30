@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import { useState, useEffect } from 'react';
 import { FaEye, FaTrash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function HistoryPage() {
   const [applications, setApplications] = useState([]);
@@ -16,6 +17,7 @@ export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -65,16 +67,22 @@ export default function HistoryPage() {
   };
 
   const handleDeleteApplication = async (id) => {
-    if (!window.confirm('Delete this record permanently?')) return;
-    try {
-      const res = await fetch(`/api/applications/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      setApplications(prev => prev.filter(a => a.id !== id));
-      if (viewedApp?.id === id) setViewedApp(null);
-      toast.success('Record deleted.');
-    } catch (err) {
-      toast.error('Failed to delete.');
-    }
+    setConfirm({
+      message: 'Delete this record permanently?',
+      danger: true,
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/applications/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('Deletion failed');
+          setApplications(prev => prev.filter(a => a.id !== id));
+          if (viewedApp?.id === id) setViewedApp(null);
+          toast.success('Record deleted.');
+        } catch (err) {
+          toast.error('Failed to delete.');
+        }
+      },
+    });
   };
 
   const filteredApps = applications.filter(app => {
@@ -207,6 +215,8 @@ export default function HistoryPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

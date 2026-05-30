@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import { useState, useEffect } from 'react';
 import { FaPlus, FaPen, FaBell, FaEnvelope, FaCertificate, FaUserCheck, FaTimes, FaCheck, FaPalette, FaIcons, FaImage, FaListAlt, FaTrash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function ServicePage() {
   const [services, setServices] = useState([]);
@@ -48,6 +49,7 @@ export default function ServicePage() {
   const [formFields, setFormFields] = useState([]);
   
   const [isAddingService, setIsAddingService] = useState(false);
+  const [confirm, setConfirm] = useState(null);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -89,30 +91,33 @@ export default function ServicePage() {
   }, []);
 
   const handleApproveService = async (id, status) => {
-    if (!window.confirm(`Are you sure you want to mark this service as ${status}?`)) {
-      return;
-    }
+    setConfirm({
+      message: `Are you sure you want to mark this service as ${status}?`,
+      danger: status === 'rejected',
+      confirmText: status === 'approved' ? 'Approve' : 'Reject',
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/admin/services/${id}`, {
+            method: 'PATCH',
+            headers: {
+              ...getAuthHeaders(),
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ approvalStatus: status }),
+          });
 
-    try {
-      const response = await fetch(`/api/admin/services/${id}`, {
-        method: 'PATCH',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ approvalStatus: status }),
-      });
+          if (!response.ok) {
+            throw new Error(`Failed to ${status} service`);
+          }
 
-      if (!response.ok) {
-        throw new Error(`Failed to ${status} service`);
-      }
-
-      setServices(services.map(s => s.id === id ? { ...s, approvalStatus: status } : s));
-      toast.success(`Service ${status} successfully!`);
-    } catch (err) {
-      console.error('Status update err:', err);
-      toast.error('Failed to update service status.');
-    }
+          setServices(services.map(s => s.id === id ? { ...s, approvalStatus: status } : s));
+          toast.success(`Service ${status} successfully!`);
+        } catch (err) {
+          console.error('Status update err:', err);
+          toast.error('Failed to update service status.');
+        }
+      },
+    });
   };
 
   const fetchServices = async () => {
@@ -868,6 +873,8 @@ export default function ServicePage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

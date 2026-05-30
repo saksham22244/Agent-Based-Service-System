@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { FaPlus, FaPen, FaBell, FaEnvelope, FaCertificate, FaUserCheck, FaTimes, FaCheck, FaPalette, FaIcons, FaImage, FaListAlt, FaTrash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function ServicePage() {
   // ==================== STATE MANAGEMENT ====================
@@ -38,6 +39,7 @@ export default function ServicePage() {
   // --- UI Modal State ---
   const [isAddingService, setIsAddingService] = useState(false); // Add service modal visibility
   const [isSaving, setIsSaving] = useState(false);               // Save button loading state
+  const [confirm, setConfirm] = useState(null);
 
   // ==================== PRICE UPDATE HANDLER ====================
   
@@ -141,31 +143,28 @@ export default function ServicePage() {
    * @param {string} status - 'approved' or 'rejected'
    */
   const handleApproveService = async (id, status) => {
-    if (!window.confirm(`Are you sure you want to mark this service as ${status}?`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/admin/services/${id}`, {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-        body: JSON.stringify({ approvalStatus: status }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${status} service`);
-      }
-
-      // Update local state
-      setServices(services.map(s => s.id === id ? { ...s, approvalStatus: status } : s));
-      toast.success(`Service ${status} successfully!`);
-    } catch (err) {
-      console.error('Status update err:', err);
-      toast.error('Failed to update service status.');
-    }
+    setConfirm({
+      message: `Are you sure you want to mark this service as ${status}?`,
+      danger: status === 'rejected',
+      confirmText: status === 'approved' ? 'Approve' : 'Reject',
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/admin/services/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+            },
+            body: JSON.stringify({ approvalStatus: status }),
+          });
+          if (!response.ok) throw new Error(`Failed to ${status} service`);
+          setServices(services.map(s => s.id === id ? { ...s, approvalStatus: status } : s));
+          toast.success(`Service ${status} successfully!`);
+        } catch (err) {
+          toast.error('Failed to update service status.');
+        }
+      },
+    });
   };
 
   // ==================== DATA FETCHING ====================
@@ -177,7 +176,11 @@ export default function ServicePage() {
     try {
       setLoading(true);
       setError('');
-      const response = await fetch('/api/admin/services');
+      const response = await fetch('/api/admin/services', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch services');
@@ -1017,6 +1020,8 @@ export default function ServicePage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal config={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }
