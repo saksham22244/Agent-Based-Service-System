@@ -8,18 +8,22 @@ import 'react-toastify/dist/ReactToastify.css';
 
 export default function AdminInboxPage() {
   const router = useRouter();
-  const [notices, setNotices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, unread, urgent
-  const [deleteLoading, setDeleteLoading] = useState({});
+  
+  // ==================== STATE MANAGEMENT ====================
+  const [notices, setNotices] = useState([]);           // Array of notices/messages from users/agents
+  const [loading, setLoading] = useState(true);         // Loading state for initial fetch
+  const [filter, setFilter] = useState('all');          // Filter: 'all', 'unread', 'urgent'
+  const [deleteLoading, setDeleteLoading] = useState({}); // Track which notice is being deleted
   
   // Reply modal state
-  const [replyModal, setReplyModal] = useState(false);
-  const [selectedNotice, setSelectedNotice] = useState(null);
-  const [replyMessage, setReplyMessage] = useState('');
-  const [replyLoading, setReplyLoading] = useState(false);
+  const [replyModal, setReplyModal] = useState(false);     // Modal visibility
+  const [selectedNotice, setSelectedNotice] = useState(null); // Current notice being replied to
+  const [replyMessage, setReplyMessage] = useState('');    // Reply message content
+  const [replyLoading, setReplyLoading] = useState(false); // Reply submission state
 
+  // ==================== AUTHENTICATION & INITIALIZATION ====================
   useEffect(() => {
+    // Check if user is logged in
     const userData = localStorage.getItem('user');
     if (!userData) {
       router.push('/login');
@@ -28,7 +32,7 @@ export default function AdminInboxPage() {
 
     const parsedUser = JSON.parse(userData);
     
-    // Only allow admins and superadmins
+    // SECURITY: Only allow admins and superadmins to access this page
     if (parsedUser.role !== 'admin' && parsedUser.role !== 'superadmin') {
       router.push('/dashboard');
       return;
@@ -37,6 +41,12 @@ export default function AdminInboxPage() {
     fetchAdminNotices();
   }, [router]);
 
+  // ==================== DATA FETCHING ====================
+  
+  /**
+   * Fetches all notices sent to administrators
+   * These include messages from users and agents
+   */
   const fetchAdminNotices = async () => {
     try {
       const response = await fetch('/api/notices/admin/inbox');
@@ -50,17 +60,26 @@ export default function AdminInboxPage() {
     }
   };
 
-  // Real-time check for deleted notices (polling every 30 seconds)
+  /**
+   * Real-time polling to check for new or deleted notices
+   * Runs every 30 seconds to keep inbox updated without page refresh
+   */
   useEffect(() => {
     const interval = setInterval(() => {
       if (notices.length > 0) {
-        fetchAdminNotices();
+        fetchAdminNotices(); // Refresh notices periodically
       }
     }, 30000); // Check every 30 seconds
 
-    return () => clearInterval(interval);
+    return () => clearInterval(interval); // Cleanup on component unmount
   }, [notices.length]);
 
+  // ==================== NOTICE ACTIONS ====================
+  
+  /**
+   * Marks a specific notice as read by the admin
+   * Updates UI immediately without refreshing
+   */
   const handleMarkAsRead = async (noticeId) => {
     try {
       const response = await fetch(`/api/notices/${noticeId}/read`, {
@@ -68,6 +87,7 @@ export default function AdminInboxPage() {
       });
       
       if (response.ok) {
+        // Optimistic UI update - update local state immediately
         setNotices(notices.map(notice => 
           notice.id === noticeId 
             ? { ...notice, read: true, readAt: new Date().toISOString() }
@@ -83,11 +103,17 @@ export default function AdminInboxPage() {
     }
   };
 
+  /**
+   * Deletes a notice with confirmation
+   * Shows loading state per notice to prevent UI freeze
+   */
   const handleDelete = async (noticeId) => {
+    // Confirm with user before deletion
     if (!confirm('Are you sure you want to delete this notice?')) {
       return;
     }
 
+    // Set loading state for this specific notice only
     setDeleteLoading(prev => ({ ...prev, [noticeId]: true }));
 
     try {
@@ -96,6 +122,7 @@ export default function AdminInboxPage() {
       });
 
       if (response.ok) {
+        // Remove from local state immediately
         setNotices(notices.filter(notice => notice.id !== noticeId));
         toast.success('Notice deleted successfully');
       } else {
@@ -109,13 +136,22 @@ export default function AdminInboxPage() {
     }
   };
 
+  /**
+   * Opens reply modal for a specific notice
+   * Stores the selected notice for reply context
+   */
   const handleReply = (notice) => {
     setSelectedNotice(notice);
     setReplyMessage('');
     setReplyModal(true);
   };
 
+  /**
+   * Sends a reply to the original sender
+   * Creates a new notice in the system directed to the sender
+   */
   const handleSendReply = async () => {
+    // Validate reply message
     if (!replyMessage.trim()) {
       toast.error('Please enter a reply message');
       return;
@@ -130,14 +166,14 @@ export default function AdminInboxPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          originalNoticeId: selectedNotice.id,
-          replyTo: selectedNotice.senderId,
-          replyToEmail: selectedNotice.senderEmail,
-          replyToName: selectedNotice.senderName,
-          replyToRole: selectedNotice.senderRole,
-          message: replyMessage.trim(),
-          originalTitle: selectedNotice.title,
-          originalMessage: selectedNotice.message,
+          originalNoticeId: selectedNotice.id,      // Reference to original message
+          replyTo: selectedNotice.senderId,          // Recipient ID
+          replyToEmail: selectedNotice.senderEmail,  // Recipient email
+          replyToName: selectedNotice.senderName,    // Recipient name
+          replyToRole: selectedNotice.senderRole,    // Recipient role (user/agent)
+          message: replyMessage.trim(),              // Reply content
+          originalTitle: selectedNotice.title,       // Context for original message
+          originalMessage: selectedNotice.message,   // Full original message
         }),
       });
 
@@ -159,6 +195,12 @@ export default function AdminInboxPage() {
     }
   };
 
+  // ==================== FILTERING & HELPER FUNCTIONS ====================
+  
+  /**
+   * Filters notices based on current filter selection
+   * Options: all messages, unread only, urgent/high priority only
+   */
   const getFilteredNotices = () => {
     switch (filter) {
       case 'unread':
@@ -170,6 +212,10 @@ export default function AdminInboxPage() {
     }
   };
 
+  /**
+   * Returns color classes based on notice priority
+   * Visual differentiation for urgent, high, low priority messages
+   */
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'urgent': return 'bg-red-50 text-red-600 border-red-200';
@@ -179,6 +225,10 @@ export default function AdminInboxPage() {
     }
   };
 
+  /**
+   * Returns color classes based on notice source
+   * Distinguishes between user submissions and system messages
+   */
   const getSourceColor = (source) => {
     switch (source) {
       case 'user_submission': return 'bg-blue-50 text-blue-700 border-blue-200';
@@ -186,18 +236,22 @@ export default function AdminInboxPage() {
     }
   };
 
+  // Apply filters to get displayed notices
   const filteredNotices = getFilteredNotices();
   const unreadCount = notices.filter(n => !n.read).length;
 
+  // ==================== RENDER ====================
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
 
       <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full">
+        {/* Gradient Header Bar */}
         <div className="h-1 bg-gradient-to-r from-blue-500 to-[#5C5470] flex-shrink-0"></div>
         
         <div className="flex-1 max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 w-full">
-          {/* Header */}
+          
+          {/* Header Section */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Inbox</h1>
@@ -205,6 +259,7 @@ export default function AdminInboxPage() {
                 Notices and messages sent by users and agents to administrators
               </p>
             </div>
+            {/* Unread Count Badge */}
             <div className="flex items-center gap-4">
               <span className="bg-red-50 text-red-600 px-4 py-2 rounded-full text-sm font-bold shadow-md border border-red-200">
                 {unreadCount} Unread
@@ -212,7 +267,7 @@ export default function AdminInboxPage() {
             </div>
           </div>
 
-          {/* Filters */}
+          {/* Filter Buttons */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
             <div className="flex flex-wrap gap-3">
               <button
@@ -248,12 +303,14 @@ export default function AdminInboxPage() {
             </div>
           </div>
 
-          {/* Notices List */}
+          {/* Notices List - Main Content */}
           {loading ? (
+            // Loading State
             <div className="flex justify-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : filteredNotices.length === 0 ? (
+            // Empty State
             <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-12 text-center">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-4xl text-gray-400">📭</span>
@@ -268,37 +325,42 @@ export default function AdminInboxPage() {
               </p>
             </div>
           ) : (
+            // Notices List - Display each notice as a card
             <div className="space-y-4">
               {filteredNotices.map((notice) => (
                 <div
                   key={notice.id}
                   className={`relative bg-white rounded-xl p-6 transition-all border ${
                     !notice.read 
-                      ? 'border-indigo-200 shadow-sm shadow-indigo-100' 
-                      : 'border-slate-200'
+                      ? 'border-indigo-200 shadow-sm shadow-indigo-100' // Unread styling
+                      : 'border-slate-200' // Read styling
                   }`}
                 >
-                  {/* Unread indicator */}
+                  {/* Unread Indicator Dot */}
                   {!notice.read && (
                     <div className="absolute top-6 right-6 w-2.5 h-2.5 bg-indigo-600 rounded-full"></div>
                   )}
                   
                   <div className="flex flex-col gap-3">
-                    {/* Header */}
+                    {/* Header with Title, Priority, Source */}
                     <div>
                       <div className="flex items-center gap-3 mb-1.5 pr-8">
                         <h3 className="text-lg font-bold text-slate-800">{notice.title}</h3>
+                        
+                        {/* Priority Badge */}
                         {notice.priority && notice.priority !== 'normal' && (
                           <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest ${getPriorityColor(notice.priority)} border-none`}>
                             {notice.priority}
                           </span>
                         )}
+                        
+                        {/* Source Badge (User/System) */}
                         <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest ${getSourceColor(notice.source)} border-none`}>
                           {notice.source === 'user_submission' ? 'User' : 'System'}
                         </span>
                       </div>
                       
-                      {/* Sender Metadata */}
+                      {/* Sender Information */}
                       <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
                         <span className="font-semibold text-slate-700">{notice.senderName}</span>
                         <span className="text-slate-300">•</span>
@@ -308,13 +370,14 @@ export default function AdminInboxPage() {
                       </div>
                     </div>
 
-                    {/* Message Body */}
+                    {/* Message Content */}
                     <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap mt-2">
                       {notice.message}
                     </div>
 
-                    {/* Actions */}
+                    {/* Action Buttons */}
                     <div className="flex items-center gap-5 mt-3 pt-4 border-t border-slate-100">
+                      {/* Mark as Read - Only shown for unread notices */}
                       {!notice.read && (
                         <button
                           onClick={() => handleMarkAsRead(notice.id)}
@@ -323,12 +386,16 @@ export default function AdminInboxPage() {
                           Mark as Read
                         </button>
                       )}
+                      
+                      {/* Reply Button */}
                       <button
                         onClick={() => handleReply(notice)}
                         className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
                       >
                         Reply
                       </button>
+                      
+                      {/* Delete Button with Loading State */}
                       <button
                         onClick={() => handleDelete(notice.id)}
                         disabled={deleteLoading[notice.id]}
@@ -346,8 +413,6 @@ export default function AdminInboxPage() {
                           'Delete'
                         )}
                       </button>
-                      
-
                     </div>
                   </div>
                 </div>
@@ -357,11 +422,12 @@ export default function AdminInboxPage() {
         </div>
       </div>
 
-      {/* Reply Modal */}
+      {/* ==================== REPLY MODAL ==================== */}
       {replyModal && selectedNotice && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
+            
+            {/* Modal Header - Gradient Background */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 flex justify-between items-center text-white">
               <div>
                 <h3 className="text-xl font-bold">Reply to {selectedNotice.senderName}</h3>
@@ -377,9 +443,10 @@ export default function AdminInboxPage() {
               </button>
             </div>
             
-            {/* Modal Body */}
+            {/* Modal Body - Contains original message and reply form */}
             <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-              {/* Original Message Context */}
+              
+              {/* Original Message Context - Shows what admin is replying to */}
               <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
                 <h4 className="font-semibold text-gray-900 mb-2">Original Message:</h4>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
@@ -407,13 +474,14 @@ export default function AdminInboxPage() {
                   required
                   maxLength={1000}
                 />
+                {/* Character counter */}
                 <p className="text-xs text-gray-500 mt-1">
                   {replyMessage.length}/1000 characters
                 </p>
               </div>
             </div>
             
-            {/* Modal Footer */}
+            {/* Modal Footer - Action Buttons */}
             <div className="p-6 bg-white border-t border-gray-200 flex justify-end gap-3">
               <button
                 onClick={() => setReplyModal(false)}
@@ -428,6 +496,7 @@ export default function AdminInboxPage() {
               >
                 {replyLoading ? (
                   <>
+                    {/* Loading Spinner */}
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -436,6 +505,7 @@ export default function AdminInboxPage() {
                   </>
                 ) : (
                   <>
+                    {/* Send Icon */}
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
@@ -448,6 +518,7 @@ export default function AdminInboxPage() {
         </div>
       )}
 
+      {/* Toast Notifications Container */}
       <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
