@@ -9,34 +9,46 @@ import { FaDollarSign, FaSearch, FaUser, FaCalendar, FaCheckCircle, FaTimesCircl
 
 export default function AdminAgentPaymentsPage() {
   const router = useRouter();
-  const [agents, setAgents] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [selectedAgent, setSelectedAgent] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentNote, setPaymentNote] = useState('');
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  
+  // ==================== STATE MANAGEMENT ====================
+  const [agents, setAgents] = useState([]);              // List of all agents
+  const [payments, setPayments] = useState([]);          // All payment transactions
+  const [selectedAgent, setSelectedAgent] = useState(null); // Currently selected agent for payment
+  const [loading, setLoading] = useState(true);          // Loading state for UI
+  const [searchQuery, setSearchQuery] = useState('');    // Search/filter query
+  const [paymentAmount, setPaymentAmount] = useState(''); // Payment amount input
+  const [paymentNote, setPaymentNote] = useState('');     // Payment note/description
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false); // Prevent double submission
+  const [currentPage, setCurrentPage] = useState(1);     // Current pagination page
+  const itemsPerPage = 8;                                // Items per page for table
 
+  // ==================== AUTHENTICATION & INITIALIZATION ====================
   useEffect(() => {
+    // Check if user is logged in
     const userData = localStorage.getItem('user');
     if (!userData) {
       router.push('/login');
       return;
     }
 
+    // SECURITY: Verify admin/superadmin role
     const user = JSON.parse(userData);
     if (user.role !== 'admin' && user.role !== 'superadmin') {
       router.push('/dashboard');
       return;
     }
 
+    // Fetch initial data
     fetchAgents();
     fetchPayments();
   }, [router]);
 
+  // ==================== DATA FETCHING ====================
+  
+  /**
+   * Fetches all agents from the API
+   * Used for dropdown selection and displaying agent info
+   */
   const fetchAgents = async () => {
     try {
       const response = await fetch('/api/agents');
@@ -48,25 +60,37 @@ export default function AdminAgentPaymentsPage() {
     }
   };
 
+  /**
+   * Fetches all payment transactions for all agents
+   * Handles different API response formats defensively
+   */
   const fetchPayments = async () => {
     try {
       const response = await fetch('/api/admin/agent-payments');
       const data = await response.json();
       
-      // Ensure data is an array
+      // DEFENSIVE: Handle multiple possible response formats
       const paymentsArray = Array.isArray(data) ? data : (data?.payments || data?.transactions || []);
       setPayments(paymentsArray);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast.error('Failed to load payment history');
-      setPayments([]); // Set empty array on error
+      setPayments([]); // Set empty array on error to prevent UI crashes
     } finally {
       setLoading(false);
     }
   };
 
+  // ==================== PAYMENT PROCESSING ====================
+  
+  /**
+   * Handles direct payment submission to selected agent
+   * Validates input and redirects to eSewa payment gateway
+   */
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate payment details
     if (!selectedAgent || !paymentAmount || parseFloat(paymentAmount) <= 0) {
       toast.error('Please select an agent and enter a valid amount');
       return;
@@ -75,8 +99,10 @@ export default function AdminAgentPaymentsPage() {
     setIsProcessingPayment(true);
 
     try {
+      // Create unique product ID for this transaction
       const productId = `direct_payment_${selectedAgent.id}_${Date.now()}`;
       
+      // Initiate payment with eSewa gateway
       const esewaRes = await fetch('/api/esewa/initiate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,6 +117,7 @@ export default function AdminAgentPaymentsPage() {
 
       const esewaData = await esewaRes.json();
 
+      // Redirect to eSewa payment page
       if (esewaData.url) {
         window.location.href = esewaData.url;
       } else {
@@ -103,30 +130,56 @@ export default function AdminAgentPaymentsPage() {
     }
   };
 
+  // ==================== HELPER FUNCTIONS ====================
+  
+  /**
+   * Returns appropriate badge styling based on payment status
+   * Used for visual status indicators in the table
+   */
   const getStatusBadge = (status) => {
     switch(status) {
-      case 'COMPLETE': return <span className="bg-green-100 text-green-800 border border-green-200 px-3 py-1 rounded-full text-xs font-bold uppercase">Complete</span>;
-      case 'PENDING': return <span className="bg-yellow-100 text-yellow-800 border border-yellow-200 px-3 py-1 rounded-full text-xs font-bold uppercase">Pending</span>;
-      case 'FAILED': return <span className="bg-red-100 text-red-800 border border-red-200 px-3 py-1 rounded-full text-xs font-bold uppercase">Failed</span>;
-      default: return <span className="bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1 rounded-full text-xs font-bold uppercase">{status}</span>;
+      case 'COMPLETE': 
+        return <span className="bg-green-100 text-green-800 border border-green-200 px-3 py-1 rounded-full text-xs font-bold uppercase">Complete</span>;
+      case 'PENDING': 
+        return <span className="bg-yellow-100 text-yellow-800 border border-yellow-200 px-3 py-1 rounded-full text-xs font-bold uppercase">Pending</span>;
+      case 'FAILED': 
+        return <span className="bg-red-100 text-red-800 border border-red-200 px-3 py-1 rounded-full text-xs font-bold uppercase">Failed</span>;
+      default: 
+        return <span className="bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1 rounded-full text-xs font-bold uppercase">{status}</span>;
     }
   };
 
+  /**
+   * Calculates remaining amount owed to an agent
+   * Total earnings minus total successful payments
+   */
   const getRemainingOwed = (agent) => {
+    // Filter successful direct payments for this agent
     const agentPayments = payments.filter(p => 
       p.userId === agent.id && 
       p.type === 'direct_payment' && 
       p.status !== 'FAILED'
     );
+    // Sum total paid amount
     const totalPaid = agentPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+    // Return remaining owed (never negative)
     return Math.max(0, (agent.totalEarnings || 0) - totalPaid);
   };
 
+  // ==================== FILTERING & PAGINATION ====================
+  
+  /**
+   * Filter agents based on search query (name or email)
+   */
   const filteredAgents = agents.filter(agent => 
     agent.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     agent.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  /**
+   * Filter payments based on search query
+   * Searches by note, agent name, or agent email
+   */
   const filteredPayments = payments.filter(payment => {
     const agent = agents.find(a => a.id === payment.userId);
     return payment.note?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -134,11 +187,13 @@ export default function AdminAgentPaymentsPage() {
            agent?.email?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  // Pagination calculations
   const totalPages = Math.max(1, Math.ceil(filteredPayments.length / itemsPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * itemsPerPage;
   const paginatedPayments = filteredPayments.slice(startIndex, startIndex + itemsPerPage);
 
+  // ==================== LOADING STATE ====================
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
@@ -150,14 +205,17 @@ export default function AdminAgentPaymentsPage() {
     );
   }
 
+  // ==================== RENDER MAIN PAGE ====================
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full">
+        {/* Top gradient bar - visual accent */}
         <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 flex-shrink-0"></div>
         
         <div className="flex-1 max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 w-full">
-          {/* Header */}
+          
+          {/* ==================== HEADER SECTION ==================== */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Agent Payments</h1>
@@ -165,14 +223,17 @@ export default function AdminAgentPaymentsPage() {
             </div>
           </div>
 
-          {/* Direct Payment Section */}
+          {/* ==================== DIRECT PAYMENT FORM ==================== */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
               <FaDollarSign className="text-green-600" />
               Direct Payment to Agent
             </h2>
             
+            {/* Payment Form - 4 column grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              
+              {/* Agent Selection Dropdown */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Select Agent</label>
                 <select
@@ -192,6 +253,7 @@ export default function AdminAgentPaymentsPage() {
                 </select>
               </div>
               
+              {/* Payment Amount Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Payment Amount (Rs.)</label>
                 <input
@@ -205,6 +267,7 @@ export default function AdminAgentPaymentsPage() {
                 />
               </div>
               
+              {/* Payment Note Input - spans 2 columns on desktop */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Payment Note (Optional)</label>
                 <input
@@ -217,6 +280,7 @@ export default function AdminAgentPaymentsPage() {
               </div>
             </div>
             
+            {/* Submit Button */}
             <button
               onClick={handlePaymentSubmit}
               disabled={isProcessingPayment || !selectedAgent || !paymentAmount}
@@ -236,7 +300,7 @@ export default function AdminAgentPaymentsPage() {
             </button>
           </div>
 
-          {/* Search Bar */}
+          {/* ==================== SEARCH BAR ==================== */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
             <div className="flex items-center gap-4">
               <FaSearch className="text-gray-400" />
@@ -246,19 +310,20 @@ export default function AdminAgentPaymentsPage() {
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  setCurrentPage(1);
+                  setCurrentPage(1); // Reset to first page when searching
                 }}
                 className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
               />
             </div>
           </div>
 
-          {/* Payment History */}
+          {/* ==================== PAYMENT HISTORY TABLE ==================== */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900">Payment History</h2>
             </div>
             
+            {/* Empty State */}
             {filteredPayments.length === 0 ? (
               <div className="p-12 text-center">
                 <FaDollarSign className="text-5xl text-gray-300 mx-auto mb-4" />
@@ -266,6 +331,7 @@ export default function AdminAgentPaymentsPage() {
                 <p className="text-gray-500">No payments found matching your search criteria.</p>
               </div>
             ) : (
+              // Payment Table - Responsive with horizontal scroll
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -283,6 +349,7 @@ export default function AdminAgentPaymentsPage() {
                       const agent = agents.find(a => a.id === payment.userId);
                       return (
                         <tr key={payment.id} className="hover:bg-gray-50">
+                          {/* Agent Info with Avatar */}
                           <td className="px-6 py-4">
                             <div className="flex items-center">
                               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
@@ -293,38 +360,43 @@ export default function AdminAgentPaymentsPage() {
                                 <div className="text-xs text-gray-500">{agent?.email || 'N/A'}</div>
                               </div>
                             </div>
-                          </td>
+                           </td>
+                          {/* Payment Amount */}
                           <td className="px-6 py-4">
                             <div className="text-sm font-bold text-green-600">Rs. {payment.amount}</div>
-                          </td>
+                           </td>
+                          {/* Payment Type */}
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900">
                               {payment.type === 'agent_payment' ? 'Work Completion' : 
                                payment.type === 'direct_payment' ? 'Direct Payment' : 'Other'}
                             </div>
-                          </td>
+                           </td>
+                          {/* Payment Note with tooltip */}
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900 max-w-xs truncate" title={payment.note}>
                               {payment.note || 'No note'}
                             </div>
-                          </td>
+                           </td>
+                          {/* Payment Date */}
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-500">
                               {new Date(payment.createdAt).toLocaleDateString()}
                             </div>
-                          </td>
+                           </td>
+                          {/* Status Badge */}
                           <td className="px-6 py-4">
                             {getStatusBadge(payment.status)}
-                          </td>
-                        </tr>
+                           </td>
+                         </tr>
                       );
                     })}
                   </tbody>
-                </table>
+                 </table>
               </div>
             )}
             
-            {/* Pagination Controls */}
+            {/* ==================== PAGINATION CONTROLS ==================== */}
             {!loading && totalPages > 1 && (
               <div className="flex items-center justify-end gap-1.5 text-xs text-gray-700 bg-gray-50 px-4 py-3 border-t border-gray-200">
                 <span className="mr-0.5">Show</span>
@@ -337,8 +409,8 @@ export default function AdminAgentPaymentsPage() {
                       onClick={() => setCurrentPage(pageNumber)}
                       className={`px-2 py-0.5 rounded border text-xs transition-colors ${
                         safeCurrentPage === pageNumber
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
+                          ? 'bg-blue-600 text-white border-blue-600' // Active page style
+                          : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100' // Inactive page style
                       }`}
                     >
                       {pageNumber}
@@ -351,6 +423,7 @@ export default function AdminAgentPaymentsPage() {
         </div>
       </div>
 
+      {/* Toast Notifications Container */}
       <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );

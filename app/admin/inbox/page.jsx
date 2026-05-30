@@ -152,7 +152,7 @@ export default function AdminInboxPage() {
    */
   const handleSendReply = async () => {
     // Validate reply message
-    if (!replyMessage.trim()) {
+    if (!replyMessage.trim()) { 
       toast.error('Please enter a reply message');
       return;
     }
@@ -247,7 +247,7 @@ export default function AdminInboxPage() {
 
       <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full">
         {/* Gradient Header Bar */}
-        <div className="h-1 bg-gradient-to-r from-blue-500 to-[#5C5470] flex-shrink-0"></div>
+        <div className="h-1 bg-gradient-to-r from-black-500 to-[#5C5470] flex-shrink-0"></div> 
         
         <div className="flex-1 max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 w-full">
           
