@@ -65,6 +65,18 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
         setIsSubmitting(false);
         return;
       }
+
+      // Validate phone number: exactly 10 digits
+      if (profileData.phoneNumber) {
+        const digitsOnly = profileData.phoneNumber.replace(/\D/g, '');
+        if (digitsOnly.length !== 10) {
+          toast.error('Phone number must be exactly 10 digits');
+          setIsSubmitting(false);
+          return;
+        }
+        profileData.phoneNumber = digitsOnly;
+      }
+
       const endpoint = user.role === 'agent' ? `/api/agents/${userId}` : `/api/users/${userId}`;
       const res = await fetch(endpoint, {
         method: 'PATCH',
@@ -74,7 +86,10 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
         body: JSON.stringify(profileData),
       });
 
-      if (!res.ok) throw new Error('Failed to update profile');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update profile');
+      }
       const updatedData = await res.json();
       
       const updatedUser = { ...user, ...updatedData };
@@ -84,8 +99,8 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
       toast.success('Profile updated successfully!');
       setShowProfile(false);
     } catch (err) {
-      toast.error('Error updating profile');
       console.error(err);
+      toast.error(err.message || 'Error updating profile');
     } finally {
       setIsSubmitting(false);
     }

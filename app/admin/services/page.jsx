@@ -38,7 +38,6 @@ export default function ServicePage() {
   // --- UI Modal State ---
   const [isAddingService, setIsAddingService] = useState(false); // Add service modal visibility
   const [isSaving, setIsSaving] = useState(false);               // Save button loading state
-  const [approvalConfirm, setApprovalConfirm] = useState(null);  // Approval confirmation modal {id, status}
 
   // ==================== PRICE UPDATE HANDLER ====================
   
@@ -137,22 +136,14 @@ export default function ServicePage() {
   // ==================== SERVICE APPROVAL HANDLER ====================
   
   /**
-   * Opens the approval confirmation modal
+   * Approves or rejects a pending service (admin/superadmin only)
    * @param {string} id - Service ID
    * @param {string} status - 'approved' or 'rejected'
    */
-  const handleApproveService = (id, status) => {
-    setApprovalConfirm({ id, status });
-  };
-
-  /**
-   * Confirms and processes the service approval/rejection
-   */
-  const handleApproveServiceConfirm = async () => {
-    if (!approvalConfirm) return;
-
-    const { id, status } = approvalConfirm;
-    setApprovalConfirm(null);
+  const handleApproveService = async (id, status) => {
+    if (!window.confirm(`Are you sure you want to mark this service as ${status}?`)) {
+      return;
+    }
 
     try {
       const response = await fetch(`/api/admin/services/${id}`, {
@@ -517,8 +508,6 @@ export default function ServicePage() {
                    </button>
                  )}
               </div>
-
-              
 
               {/* Services Grid - Responsive Card Layout */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -1004,35 +993,6 @@ export default function ServicePage() {
       )}
       
       {/* ==================== DELETE CONFIRMATION MODAL ==================== */}
-      {approvalConfirm && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Action</h3>
-              <p className="text-gray-500 text-sm">Are you sure you want to mark this service as <span className="font-semibold text-gray-900">{approvalConfirm.status}</span>?</p>
-            </div>
-            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
-              <button 
-                onClick={() => setApprovalConfirm(null)} 
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleApproveServiceConfirm} 
-                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors shadow-sm ${
-                  approvalConfirm.status === 'approved' 
-                    ? 'bg-green-600 hover:bg-green-700' 
-                    : 'bg-red-600 hover:bg-red-700'
-                }`}
-              >
-                {approvalConfirm.status === 'approved' ? 'Approve' : 'Reject'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {deleteConfirmId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
