@@ -86,15 +86,18 @@ export async function POST(request) {
       approved: approved || false, // Default to false unless explicitly set to true
     });
 
-    try {
-      await sendAccountCreatedEmail({
-        email: newAgent.email,
-        name: newAgent.name,
-        password: generatedPassword,
-        role: 'agent',
-      });
-    } catch (emailError) {
-      console.error('Error sending new agent email:', emailError);
+    // Only send credentials email for admin-created or already-approved agents.
+    if (approved) {
+      try {
+        await sendAccountCreatedEmail({
+          email: newAgent.email,
+          name: newAgent.name,
+          password: generatedPassword,
+          role: 'agent',
+        });
+      } catch (emailError) {
+        console.error('Error sending new agent email:', emailError);
+      }
     }
 
     return NextResponse.json(newAgent, { status: 201 });

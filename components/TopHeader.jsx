@@ -21,17 +21,20 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
   const [showNoticesDropdown, setShowNoticesDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Derive a stable userId (API responses sometimes include `id` while some objects may have `_id`)
+  const userId = user?.id || (user?._id ? user._id : null);
+
   useEffect(() => {
-    if (user?.id) {
+    if (userId) {
       fetchNotices();
     }
-  }, [user?.id]);
+  }, [userId]);
 
   const fetchNotices = async () => {
     try {
       const endpoint = user.role === 'agent' 
-        ? `/api/agents/${user.id}/notices` 
-        : `/api/users/${user.id}/notices`;
+        ? `/api/agents/${userId}/notices` 
+        : `/api/users/${userId}/notices`;
       const res = await fetch(endpoint);
       if (res.ok) {
         const data = await res.json();
@@ -57,7 +60,12 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const endpoint = user.role === 'agent' ? `/api/agents/${user.id}` : `/api/users/${user.id}`;
+      if (!userId) {
+        toast.error('Unable to update profile: missing user id. Please reload.');
+        setIsSubmitting(false);
+        return;
+      }
+      const endpoint = user.role === 'agent' ? `/api/agents/${userId}` : `/api/users/${userId}`;
       const res = await fetch(endpoint, {
         method: 'PATCH',
         headers: {

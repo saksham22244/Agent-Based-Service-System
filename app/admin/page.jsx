@@ -41,19 +41,33 @@ export default function DashboardPage() {
         fetch('/api/agents', { headers: authHeaders }),
       ]);
 
+      // Ensure responses succeeded
+      if (!usersRes.ok) {
+        const err = await usersRes.json().catch(() => ({}));
+        throw new Error(err.error || err.message || 'Failed to fetch users');
+      }
+      if (!agentsRes.ok) {
+        const err = await agentsRes.json().catch(() => ({}));
+        throw new Error(err.error || err.message || 'Failed to fetch agents');
+      }
+
       const usersData = await usersRes.json();
       const agentsData = await agentsRes.json();
 
+      // Defensive: ensure we have arrays
+      const usersArray = Array.isArray(usersData) ? usersData : (usersData?.users || []);
+      const agentsArray = Array.isArray(agentsData) ? agentsData : (agentsData?.agents || []);
+
       // Store users and agents for notice form
-      setUsers(usersData);
-      setAgents(agentsData);
+      setUsers(usersArray);
+      setAgents(agentsArray);
 
       // Filter out super admin from display
-      const filteredUsers = usersData.filter((u) => u.email !== 'admin@example.com');
+      const filteredUsers = usersArray.filter((u) => u.email !== 'admin@example.com');
 
       const combined = [
         ...filteredUsers.map((u) => ({ ...u, type: 'user' })),
-        ...agentsData.map((a) => ({ ...a, type: 'agent', approved: a.approved || false })),
+        ...agentsArray.map((a) => ({ ...a, type: 'agent', approved: a.approved || false })),
       ];
 
       // Sort by createdAt descending (newest first)
