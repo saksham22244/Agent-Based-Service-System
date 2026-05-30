@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaEye, FaTrash, FaCheck, FaTimes, FaSearch, FaUser, FaUserTie, FaPlus, FaFilter, FaBullhorn } from 'react-icons/fa';
 import Sidebar, { MobileHeader } from '@/components/Sidebar';
-import Image from 'next/image';
 import UserForm from '@/components/UserForm';
 import AgentForm from '@/components/AgentForm';
 import NoticeForm from '@/components/NoticeForm';
@@ -12,36 +10,52 @@ import { toast } from 'react-toastify';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [items, setItems] = useState([]);
-  const [filter, setFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [viewModal, setViewModal] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [approveConfirm, setApproveConfirm] = useState(null);
-  const [addUserModal, setAddUserModal] = useState(false);
-  const [addAgentModal, setAddAgentModal] = useState(false);
-  const [noticeModal, setNoticeModal] = useState(false);
-  const [users, setUsers] = useState([]);
-  const [agents, setAgents] = useState([]);
+  
+  // ==================== STATE MANAGEMENT ====================
+  const [items, setItems] = useState([]);           // Combined list of users and agents
+  const [filter, setFilter] = useState('all');      // Filter: 'all', 'user', 'agent'
+  const [searchQuery, setSearchQuery] = useState(''); // Search input value
+  const [loading, setLoading] = useState(true);     // Loading state for data fetching
+  
+  // Modal states
+  const [viewModal, setViewModal] = useState(null);        // View details modal
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // Delete confirmation modal
+  const [approveConfirm, setApproveConfirm] = useState(null); // Approve confirmation modal
+  const [addUserModal, setAddUserModal] = useState(false);   // Add user form modal
+  const [addAgentModal, setAddAgentModal] = useState(false); // Add agent form modal
+  const [noticeModal, setNoticeModal] = useState(false);     // Send notice modal
+  
+  // Data stores
+  const [users, setUsers] = useState([]);   // Raw users data for notice form
+  const [agents, setAgents] = useState([]); // Raw agents data for notice form
+  
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4; // Reduced strictly to perfectly fit viewport with more padding
+  const itemsPerPage = 4; // Strictly to fit viewport with more padding
 
+  // ==================== DATA FETCHING ====================
   useEffect(() => {
     fetchData();
   }, []);
 
+  /**
+   * Fetches users and agents from API
+   * Combines them into a single array for display
+   * Filters out super admin user
+   * Sorts by creation date (newest first)
+   */
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
+      // Parallel API calls for better performance THAN SEQUENTIAL CALL AND THEN WAITING FOR BOTH TO COMPLETE 
       const [usersRes, agentsRes] = await Promise.all([
         fetch('/api/users', { headers: authHeaders }),
         fetch('/api/agents', { headers: authHeaders }),
       ]);
 
-      // Ensure responses succeeded
+      // Error handling for failed responses
       if (!usersRes.ok) {
         const err = await usersRes.json().catch(() => ({}));
         throw new Error(err.error || err.message || 'Failed to fetch users');
@@ -54,17 +68,18 @@ export default function DashboardPage() {
       const usersData = await usersRes.json();
       const agentsData = await agentsRes.json();
 
-      // Defensive: ensure we have arrays
+      // Defensive: ensure we have arrays even if API returns unexpected format
       const usersArray = Array.isArray(usersData) ? usersData : (usersData?.users || []);
       const agentsArray = Array.isArray(agentsData) ? agentsData : (agentsData?.agents || []);
 
-      // Store users and agents for notice form
+      // Store for notice form reference
       setUsers(usersArray);
       setAgents(agentsArray);
 
-      // Filter out super admin from display
+      // CRITICAL: Filter out super admin from display to prevent accidental deletion/modification
       const filteredUsers = usersArray.filter((u) => u.email !== 'admin@example.com');
 
+      // Combine users and agents with type identifiers
       const combined = [
         ...filteredUsers.map((u) => ({ ...u, type: 'user' })),
         ...agentsArray.map((a) => ({ ...a, type: 'agent', approved: a.approved || false })),
@@ -74,7 +89,7 @@ export default function DashboardPage() {
       combined.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dateB - dateA; // Descending order (newest first)
+        return dateB - dateA;
       });
 
       setItems(combined);
@@ -85,35 +100,39 @@ export default function DashboardPage() {
     }
   };
 
+  // ==================== CRUD OPERATIONS ====================
+  
+  /**
+   * Handles delete button click
+   * Prevents deletion of super admin user
+   * Shows confirmation modal
+   */
   const handleDeleteClick = (id, type) => {
-    // Get item name for confirmation
     const item = items.find(i => i.id === id);
 
-    // Prevent deleting super admin
+    // SECURITY: Prevent deletion of super admin
     if (type === 'user' && item && item.email === 'admin@example.com') {
       toast.error('Cannot delete super admin user!');
       return;
     }
 
     const itemName = item?.name || 'this item';
-
-    // Show custom confirmation modal
     setDeleteConfirm({ id, type, name: itemName });
   };
 
+  /**
+   * Executes delete after confirmation
+   * Makes DELETE request to appropriate API endpoint
+   * Refreshes data on success
+   */
   const handleDeleteConfirm = async () => {
     if (!deleteConfirm) return;
 
     const { id, type } = deleteConfirm;
-    console.log('Proceeding with deletion of:', id, type);
-
-    // Close confirmation modal
     setDeleteConfirm(null);
 
     try {
       const endpoint = type === 'user' ? `/api/users/${id}` : `/api/agents/${id}`;
-      console.log('Making DELETE request to:', endpoint);
-
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -125,18 +144,12 @@ export default function DashboardPage() {
         },
       });
 
-      console.log('Response status:', response.status);
-      const data = await response.json();
-      console.log('Response data:', data);
-
       if (response.ok) {
-        console.log('Delete successful, refreshing data...');
         toast.success('Successfully deleted!');
-        await fetchData();
+        await fetchData(); // Refresh the list
       } else {
-        const errorMessage = data.error || data.message || 'Unknown error';
-        toast.error(`Failed to delete: ${errorMessage}`);
-        console.error('Delete failed:', data);
+        const data = await response.json();
+        toast.error(`Failed to delete: ${data.error || data.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting:', error);
@@ -144,13 +157,10 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLogout = () => {
-    // Clear any session data
-    if (confirm('Are you sure you want to logout?')) {
-      router.push('/login');
-    }
-  };
-
+  /**
+   * Handles agent approval
+   * Updates agent status to approved
+   */
   const handleApproveConfirm = async () => {
     if (!approveConfirm) return;
 
@@ -178,6 +188,10 @@ export default function DashboardPage() {
     }
   };
 
+  /**
+   * Creates a new user from admin panel
+   * Sets verified: true so user is immediately active
+   */
   const handleAddUser = async (userData) => {
     try {
       const token = localStorage.getItem('token');
@@ -191,7 +205,7 @@ export default function DashboardPage() {
         },
         body: JSON.stringify({
           ...userData,
-          verified: true, // Admin-created users are immediately active
+          verified: true, // Admin-created users skip email verification
         }),
       });
 
@@ -210,9 +224,13 @@ export default function DashboardPage() {
     }
   };
 
+  /**
+   * Creates a new agent from admin panel
+   * Sets approved: true for admin-created agents (bypasses approval workflow)
+   */
   const handleAddAgent = async (formData) => {
     try {
-      // Add approved: true for admin-created agents
+      // Admin-created agents are pre-approved
       formData.append('approved', 'true');
 
       const response = await fetch('/api/agents', {
@@ -235,6 +253,9 @@ export default function DashboardPage() {
     }
   };
 
+  /**
+   * Sends broadcast notice to selected users/agents
+   */
   const handleSendNotice = async (noticeData) => {
     try {
       const response = await fetch('/api/admin/notices/send', {
@@ -258,7 +279,19 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to logout?')) {
+      router.push('/login');
+    }
+  };
 
+  // ==================== FILTERING & PAGINATION ====================
+  
+  /**
+   * Filters items based on:
+   * - Type filter (all/users/agents)
+   * - Search query (name, email, phone)
+   */
   const filteredItems = items.filter((item) => {
     const matchesFilter =
       filter === 'all' ||
@@ -274,11 +307,15 @@ export default function DashboardPage() {
     return matchesFilter && matchesSearch;
   });
 
+  // Pagination calculations
+  // Use the filtered result length so page count updates correctly when searching or filtering
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
+
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * itemsPerPage;
   const paginatedItems = filteredItems.slice(startIndex, startIndex + itemsPerPage);
 
+  // ==================== RENDER ====================
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
@@ -287,30 +324,22 @@ export default function DashboardPage() {
         {/* Mobile header with hamburger built in */}
         <MobileHeader title="Admin Dashboard" subtitle="Manage users, agents, and system settings." />
 
-        {/* Desktop header */}
+        {/* Desktop header with action buttons */}
         <div className="hidden lg:flex h-1 bg-gradient-to-r from-blue-500 to-indigo-600 flex-shrink-0"></div>
         <div className="hidden lg:flex bg-white px-6 py-4 border-b flex-shrink-0 flex-col sm:flex-row sm:items-center justify-between shadow-sm gap-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-xs text-gray-500 mt-1">Manage users, agents, and system settings.</p>
           </div>
+          
+          {/* Admin Action Buttons */}
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setAddUserModal(true)}
               className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 shadow-sm"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add User
             </button>
@@ -318,18 +347,8 @@ export default function DashboardPage() {
               onClick={() => setAddAgentModal(true)}
               className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1.5 shadow-sm"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add Agent
             </button>
@@ -337,33 +356,26 @@ export default function DashboardPage() {
               onClick={() => setNoticeModal(true)}
               className="px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1.5 shadow-sm"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
-                />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
               </svg>
               Send Notice
             </button>
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* Main Content Area */}
         <div className="flex-1 flex flex-col w-full">
           <div className="p-4 flex flex-col flex-1">
 
-            {/* Filters and Search */}
+            {/* Filters and Search Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 flex-shrink-0">
               <div className="flex gap-2 flex-wrap">
                 <button
-                  onClick={() => setFilter('all')}
+                  onClick={() => {
+                    setFilter('all');
+                    setCurrentPage(1);
+                  }}
                   className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filter === 'all'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -372,7 +384,10 @@ export default function DashboardPage() {
                   All
                 </button>
                 <button
-                  onClick={() => setFilter('user')}
+                  onClick={() => {
+                    setFilter('user');
+                    setCurrentPage(1);
+                  }}
                   className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filter === 'user'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -381,7 +396,10 @@ export default function DashboardPage() {
                   USER
                 </button>
                 <button
-                  onClick={() => setFilter('agent')}
+                  onClick={() => {
+                    setFilter('agent');
+                    setCurrentPage(1);
+                  }}
                   className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filter === 'agent'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -391,7 +409,7 @@ export default function DashboardPage() {
                 </button>
               </div>
 
-              {/* Search */}
+              {/* Search Input */}
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -399,29 +417,19 @@ export default function DashboardPage() {
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    setCurrentPage(1);
+                    setCurrentPage(1); // Reset to first page on search
                   }}
                   className="px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs w-full sm:w-auto max-w-xs text-gray-900 placeholder-gray-500"
                 />
                 <button className="p-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-shrink-0">
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </button>
               </div>
             </div>
 
-            {/* User/Agent Cards - always card layout, clean and readable */}
+            {/* User/Agent Cards Display */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="divide-y divide-gray-200">
                 {loading ? (
@@ -431,7 +439,8 @@ export default function DashboardPage() {
                 ) : (
                   paginatedItems.map((item) => (
                     <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors">
-                      {/* Row 1: Avatar + Name + Actions */}
+                      
+                      {/* Row 1: Avatar + Name + Action Buttons */}
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 flex-shrink-0">
@@ -443,32 +452,44 @@ export default function DashboardPage() {
                           </div>
                           <span className="text-sm font-semibold text-gray-900 truncate">{item.name}</span>
                         </div>
-                        {/* Action buttons */}
+                        
+                        {/* Action Buttons: View, Delete, Approve (for pending agents) */}
                         <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                           <button onClick={() => setViewModal(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="View">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
                           </button>
                           <button onClick={() => handleDeleteClick(item.id, item.type)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Delete">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                           </button>
+                          {/* Only show approve button for pending agents */}
                           {item.type === 'agent' && !item.approved && (
                             <button onClick={() => setApproveConfirm({ id: item.id, name: item.name })} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Approve">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
                             </button>
                           )}
                         </div>
                       </div>
-                      {/* Row 2: Phone */}
+                      
+                      {/* Row 2: Phone Number */}
                       <div className="flex items-center gap-2 mb-1 pl-1">
                         <span className="text-xs font-medium text-gray-400 w-14 flex-shrink-0">Phone:</span>
                         <span className="text-xs text-gray-700">{item.phoneNumber}</span>
                       </div>
+                      
                       {/* Row 3: Email */}
                       <div className="flex items-center gap-2 mb-2 pl-1">
                         <span className="text-xs font-medium text-gray-400 w-14 flex-shrink-0">Email:</span>
                         <span className="text-xs text-gray-700 break-all">{item.email}</span>
                       </div>
-                      {/* Row 4: Category badges */}
+                      
+                      {/* Row 4: Status Badges */}
                       <div className="flex gap-2 pl-1">
                         <span className="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                           {item.type === 'user' ? 'User' : 'Agent'}
@@ -484,7 +505,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* "Show 1 2" style pager - Inner */}
+              {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-end gap-1.5 text-xs text-gray-700 bg-gray-50 px-4 py-3 border-t border-gray-200">
                   <span className="mr-0.5">Show</span>
@@ -511,7 +532,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* View Modal */}
+      {/* ==================== MODALS ==================== */}
+
+      {/* View Details Modal */}
       {viewModal && (
         <div
           className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm transition-opacity"
@@ -526,24 +549,14 @@ export default function DashboardPage() {
               <button
                 onClick={() => setViewModal(null)}
                 className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-                aria-label="Close"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">{viewModal.name}</h3>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${viewModal.type === 'user'
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'bg-green-100 text-green-800'
-                }`}>
-                {viewModal.type === 'user' ? 'User' : 'Agent'}
-              </span>
-            </div>
-
-            {/* Image Display - Unified for Users and Agents */}
+            
+            {/* Profile/Photo Display */}
             {(viewModal.profilePicture || (viewModal.type === 'agent' && 'photoUrl' in viewModal && viewModal.photoUrl)) ? (
               <div className="mb-8 flex justify-center pt-2">
                 <div className={`relative overflow-hidden border-4 border-white shadow-xl ${viewModal.type === 'user' ? 'w-44 h-44 rounded-full' : 'w-full max-w-sm h-80 rounded-2xl'}`}>
@@ -557,23 +570,14 @@ export default function DashboardPage() {
             ) : viewModal.type === 'user' ? (
               <div className="mb-8 flex justify-center pt-2">
                 <div className="w-44 h-44 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center border-4 border-white shadow-lg text-slate-300">
-                  <svg
-                    className="w-20 h-20"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
+                  <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
               </div>
             ) : null}
 
+            {/* Details Grid */}
             <div className="bg-gray-50 rounded-xl p-5 space-y-4">
               <div className="flex items-start gap-4">
                 <span className="font-semibold text-gray-700 w-24 flex-shrink-0">Email:</span>
@@ -590,10 +594,7 @@ export default function DashboardPage() {
               {viewModal.type === 'agent' && (
                 <div className="flex items-start gap-4">
                   <span className="font-semibold text-gray-700 w-24 flex-shrink-0">Status:</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${viewModal.approved
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                    }`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${viewModal.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                     {viewModal.approved ? 'Approved' : 'Pending'}
                   </span>
                 </div>
@@ -738,7 +739,6 @@ export default function DashboardPage() {
               <button
                 onClick={() => setAddUserModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-                aria-label="Close"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -768,7 +768,6 @@ export default function DashboardPage() {
               <button
                 onClick={() => setAddAgentModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-                aria-label="Close"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -795,5 +794,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-

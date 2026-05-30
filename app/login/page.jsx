@@ -256,7 +256,7 @@ export default function LoginPage() {
                   size="large"
                   theme="outline"
                 />
-                <p className="text-xs text-slate-500 mt-3 font-bold">Sign in works for user</p>
+                <p className="text-xs text-slate-600 mt-3 font-bold">Sign in works for user</p>
               </div>
 
               {/* Sign Up Links */}
