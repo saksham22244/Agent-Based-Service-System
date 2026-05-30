@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { noticeDb } from '@/lib/db';
-
+//It handles fetching a specific notice by ID and deleting a notice by ID, ensuring that if a user-side notice is deleted, the corresponding admin notice is also removed to maintain consistency.
 // GET - Get notice by ID
 export async function GET(request, { params }) {
   try {

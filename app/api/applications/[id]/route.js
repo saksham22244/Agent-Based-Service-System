@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { applicationDb } from '@/lib/db';
-
+//This route allows fetching a specific application by ID, updating an application's status or details, and deleting an application. 
+// It also includes logic to handle payment release to agents when they mark work as completed, ensuring that the agent receives their earnings promptly.
 export async function GET(request, { params }) {
   try {
     const { id } = await params;

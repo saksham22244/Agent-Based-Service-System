@@ -145,7 +145,7 @@ export default function DashboardPage() {
       setLoading(false);
     }
   };
-
+ 
   // Opens delete confirmation modal.
   // Prevents deleting the hard-coded super admin account.
   const handleDeleteClick = (id, type) => {

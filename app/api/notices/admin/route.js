@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { noticeDb } from '@/lib/db';
-
+//This route handles both fetching recent notices sent by users to admin and 
+// allowing users to send new notices to admin. It ensures that all necessary information is included for the admin to understand the context of the notice and take appropriate action.
 // GET - Get recent notices sent by a user to admin
 export async function GET(request) {
   try {

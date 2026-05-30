@@ -70,8 +70,14 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
-    const auth = requireAdmin(request);
+    // Allow both admins and agents to create services
+    const auth = verifyJWT(request);
     if (auth instanceof NextResponse) return auth;
+
+    const { role } = auth.payload;
+    if (!['superadmin', 'admin', 'agent'].includes(role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
     const formData = await request.formData();
     
     const name = formData.get('name');
@@ -103,6 +109,15 @@ export async function POST(request) {
       return NextResponse.json(
         { error: 'Service name is required' },
         { status: 400 }
+      );
+    }
+
+    // Check for duplicate service name (case-insensitive)
+    const existing = await serviceDb.getByName(name.trim());
+    if (existing) {
+      return NextResponse.json(
+        { error: `A service named "${existing.name.replace(/\n/g, ' ')}" already exists` },
+        { status: 409 }
       );
     }
 

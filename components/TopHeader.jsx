@@ -21,20 +21,17 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
   const [showNoticesDropdown, setShowNoticesDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Derive a stable userId (API responses sometimes include `id` while some objects may have `_id`)
-  const userId = user?.id || (user?._id ? user._id : null);
-
   useEffect(() => {
-    if (userId) {
+    if (user?.id) {
       fetchNotices();
     }
-  }, [userId]);
+  }, [user?.id]);
 
   const fetchNotices = async () => {
     try {
       const endpoint = user.role === 'agent' 
-        ? `/api/agents/${userId}/notices` 
-        : `/api/users/${userId}/notices`;
+        ? `/api/agents/${user.id}/notices` 
+        : `/api/users/${user.id}/notices`;
       const res = await fetch(endpoint);
       if (res.ok) {
         const data = await res.json();
@@ -58,26 +55,16 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
+
+    // Validate phone number is exactly 10 digits
+    if (profileData.phoneNumber && profileData.phoneNumber.length !== 10) {
+      toast.error('Phone number must be exactly 10 digits');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      if (!userId) {
-        toast.error('Unable to update profile: missing user id. Please reload.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Validate phone number: exactly 10 digits
-      if (profileData.phoneNumber) {
-        const digitsOnly = profileData.phoneNumber.replace(/\D/g, '');
-        if (digitsOnly.length !== 10) {
-          toast.error('Phone number must be exactly 10 digits');
-          setIsSubmitting(false);
-          return;
-        }
-        profileData.phoneNumber = digitsOnly;
-      }
-
-      const endpoint = user.role === 'agent' ? `/api/agents/${userId}` : `/api/users/${userId}`;
+      const endpoint = user.role === 'agent' ? `/api/agents/${user.id}` : `/api/users/${user.id}`;
       const res = await fetch(endpoint, {
         method: 'PATCH',
         headers: {
@@ -86,10 +73,7 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
         body: JSON.stringify(profileData),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to update profile');
-      }
+      if (!res.ok) throw new Error('Failed to update profile');
       const updatedData = await res.json();
       
       const updatedUser = { ...user, ...updatedData };
@@ -99,8 +83,8 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
       toast.success('Profile updated successfully!');
       setShowProfile(false);
     } catch (err) {
+      toast.error('Error updating profile');
       console.error(err);
-      toast.error(err.message || 'Error updating profile');
     } finally {
       setIsSubmitting(false);
     }
@@ -273,11 +257,24 @@ export default function TopHeader({ user, setUser, noticesCount = 0, hideSearch 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Phone Number</label>
                 <input 
-                  type="text" 
+                  type="tel" 
                   value={profileData.phoneNumber}
-                  onChange={e => setProfileData({...profileData, phoneNumber: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 placeholder-gray-500 bg-white"
+                  onChange={e => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setProfileData({...profileData, phoneNumber: digits});
+                  }}
+                  maxLength={10}
+                  pattern="\d{10}"
+                  placeholder="10-digit phone number"
+                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 placeholder-gray-500 bg-white ${
+                    profileData.phoneNumber && profileData.phoneNumber.length !== 10
+                      ? 'border-red-400'
+                      : 'border-gray-200'
+                  }`}
                 />
+                {profileData.phoneNumber && profileData.phoneNumber.length !== 10 && (
+                  <p className="mt-1 text-xs text-red-500">Phone number must be exactly 10 digits</p>
+                )}
               </div>
 
               {user?.role === 'user' && ( // Usually only users have standard addresses, but let's just make it universal

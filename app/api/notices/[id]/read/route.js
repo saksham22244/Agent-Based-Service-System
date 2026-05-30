@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { noticeDb } from '@/lib/db';
-
-// POST - Mark a notice as read
+  // POST - Mark a notice as read
 export async function POST(request, { params }) {
   try {
     const { id } = await params;
