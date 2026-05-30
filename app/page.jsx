@@ -31,7 +31,7 @@ export default function LandingPage() {
             
 
             <div className="flex items-center gap-3">
-              <Link href="/user/signup" className="hidden md:block text-sm px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+              <Link href="/login" className="hidden md:block text-sm px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
                 Login
               </Link>
               <Link href="/user/signup" className="hidden md:block text-sm px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
