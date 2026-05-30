@@ -25,19 +25,17 @@ export default function LandingPage() {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">A</span>
               </div>
-              <span className="font-bold text-lg">AgentServe</span>
+              <span className="font-bold text-lg">AgentBasedServiceSystem</span>
             </div>
 
-            <div className="hidden md:flex items-center gap-6">
-              <a href="#home" className="text-sm text-gray-600 hover:text-blue-600">Home</a>
-            </div>
+            
 
             <div className="flex items-center gap-3">
-              <Link href="/login" className="hidden md:block text-sm px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+              <Link href="/user/signup" className="hidden md:block text-sm px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
                 Login
               </Link>
-              <Link href="/login" className="hidden md:block text-sm px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                Sign Up
+              <Link href="/user/signup" className="hidden md:block text-sm px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                Sign Up 
               </Link>
               <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden w-9 h-9 bg-gray-100 rounded-lg">
                 {menuOpen ? '✕' : '☰'}
@@ -48,7 +46,7 @@ export default function LandingPage() {
 
         {menuOpen && (
           <div className="md:hidden px-4 pb-4 bg-white border-t">
-            <a href="#home" className="block py-2 text-sm">Home</a>
+          
             <div className="flex gap-3 mt-3">
               <Link href="/login" className="flex-1 text-center py-2 border rounded-lg">Login</Link>
               <Link href="/login" className="flex-1 text-center py-2 bg-blue-600 text-white rounded-lg">Sign Up</Link>
@@ -71,7 +69,7 @@ export default function LandingPage() {
             Connect with verified local agents for documents, certificates, and more.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link href="/login" className="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">
+            <Link href="/user/signup" className="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">
               Get Started →
             </Link>
             <Link href="/login" className="px-8 py-3 border-2 font-bold rounded-lg hover:bg-gray-50">
@@ -111,13 +109,12 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Ready to Start?</h2>
           <p className="text-blue-100 mb-8">Join hundreds of users saving time with AgentServe.</p>
-          <Link href="/login" className="inline-block px-8 py-3 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50">
+          <Link href="/user/signup" className="inline-block px-8 py-3 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50">
             Create Free Account
           </Link>
         </div>
       </section>
 
-      {/* Footer */}
       {/* Footer */}
 <footer className="py-12 px-4 bg-gray-900 text-gray-400">
   <div className="max-w-6xl mx-auto text-center">
@@ -134,7 +131,7 @@ export default function LandingPage() {
     </p>
 
     <p className="mb-2">
-      📞 Phone: +977-98XXXXXXXX
+      📞 Phone: +977-9865417209
     </p>
 
     <p className="mb-2">
@@ -150,7 +147,7 @@ export default function LandingPage() {
       </a>
     </div>
 
-    <div className="border-t border-gray-700 pt-4 mt-4">
+    <div className="w-full border-t border-gray-700 pt-4 mt-4">
       <p>© 2026 Agent Based Service System. All rights reserved.</p>
     </div>
   </div>

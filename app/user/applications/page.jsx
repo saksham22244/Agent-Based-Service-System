@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { FaEye, FaPrint } from 'react-icons/fa';
 
-export default function UserApplicationsPage() {
+export default function UserApplicationsPage() { //➡️ Creates a page called UserApplicationsPage.
   const router = useRouter();
   const [applications, setApplications] = useState([]);
   const [servicesMap, setServicesMap] = useState({});
