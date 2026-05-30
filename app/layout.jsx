@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata = {
   title: "Agent Based Service System",
   description: "Agent Based Service System - Super Admin Dashboard",
-  manifest: "/manifest.json",
+  manifest: "/manifest.json", // PWA manifest file
 };
 
 // Screen settings

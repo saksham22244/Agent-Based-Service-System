@@ -122,6 +122,7 @@ export default function NoticePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
         },
         body: JSON.stringify({
           title,           // Note: Next.js API parses this `req.body` and creates MongoDB items
@@ -168,7 +169,10 @@ export default function NoticePage() {
       // If it is a grouped message (1 sent to multiple people), delete all records inside the group
       if (notice.groupedIds && notice.groupedIds.length > 1) {
         const deletePromises = notice.groupedIds.map(id => 
-          fetch(`/api/admin/notices/${id}`, { method: 'DELETE' })
+          fetch(`/api/admin/notices/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+          })
         );
         const responses = await Promise.all(deletePromises);
         
@@ -181,6 +185,7 @@ export default function NoticePage() {
       } else {
         const response = await fetch(`/api/admin/notices/${notice.id}`, {
           method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
         });
 
         if (response.ok) {

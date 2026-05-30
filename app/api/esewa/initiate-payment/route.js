@@ -56,9 +56,21 @@ export async function POST(req) {
         });
         console.log("Transaction saved successfully");
 
-        return NextResponse.json({
-            url: reqPayment.request.res.responseUrl,
-        });
+        // Build the redirect URL — try multiple locations in the axios response
+        let redirectUrl = reqPayment.request?.res?.responseUrl;
+
+        if (!redirectUrl && reqPayment.config?.params) {
+            const params = new URLSearchParams(reqPayment.config.params);
+            redirectUrl = `${process.env.ESEWAPAYMENT_URL}?${params.toString()}`;
+        }
+
+        if (!redirectUrl) {
+            console.error("Could not determine eSewa redirect URL. reqPayment keys:", Object.keys(reqPayment));
+            return NextResponse.json({ message: "Could not determine eSewa redirect URL" }, { status: 500 });
+        }
+
+        console.log("eSewa redirect URL:", redirectUrl);
+        return NextResponse.json({ url: redirectUrl });
     } else {
         return NextResponse.json({ message: "eSewa didn't return 200 status" }, { status: 400 });
     }

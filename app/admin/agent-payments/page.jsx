@@ -5,22 +5,21 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FaDollarSign, FaSearch, FaUser, FaCalendar, FaCheckCircle, FaTimesCircle, FaClock } from 'react-icons/fa';
+import { FaDollarSign, FaSearch, FaUser, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 export default function AdminAgentPaymentsPage() {
   const router = useRouter();
   
   // ==================== STATE MANAGEMENT ====================
-  const [agents, setAgents] = useState([]);              // List of all agents---agent=hold data ,setAgents=update data and useState([])=initially empty array
-  const [payments, setPayments] = useState([]);          // All payment transactions
-  const [selectedAgent, setSelectedAgent] = useState(null); // Currently selected agent for payment
+  const [agents, setAgents] = useState([]);              // List of all agents
   const [loading, setLoading] = useState(true);          // Loading state for UI
   const [searchQuery, setSearchQuery] = useState('');    // Search/filter query
+  const [selectedAgent, setSelectedAgent] = useState(null); // Selected agent for payment
   const [paymentAmount, setPaymentAmount] = useState(''); // Payment amount input
   const [paymentNote, setPaymentNote] = useState('');     // Payment note/description
   const [isProcessingPayment, setIsProcessingPayment] = useState(false); // Prevent double submission
   const [currentPage, setCurrentPage] = useState(1);     // Current pagination page
-  const itemsPerPage = 8;                                // Items per page for table
+  const itemsPerPage = 6;                                // Items per page for grid
 
   // ==================== AUTHENTICATION & INITIALIZATION ====================
   useEffect(() => {
@@ -32,7 +31,7 @@ export default function AdminAgentPaymentsPage() {
     }
 
     // SECURITY: Verify admin/superadmin role
-    const user = JSON.parse(userData); //convert json string to js object
+    const user = JSON.parse(userData);
     if (user.role !== 'admin' && user.role !== 'superadmin') {
       router.push('/dashboard');
       return;
@@ -40,14 +39,14 @@ export default function AdminAgentPaymentsPage() {
 
     // Fetch initial data
     fetchAgents();
-    fetchPayments();
   }, [router]);
 
   // ==================== DATA FETCHING ====================
   
+  // ==================== DATA FETCHING ====================
+  
   /**
-   * Fetches all agents from the API
-   * Used for dropdown selection and displaying agent info
+   * Fetches all agents and calculates total paid amounts dynamically
    */
   const fetchAgents = async () => {
     try {
@@ -57,25 +56,6 @@ export default function AdminAgentPaymentsPage() {
     } catch (error) {
       console.error('Error fetching agents:', error);
       toast.error('Failed to load agents');
-    }
-  };
-
-  /**
-   * Fetches all payment transactions for all agents
-   * Handles different API response formats defensively
-   */
-  const fetchPayments = async () => {
-    try {
-      const response = await fetch('/api/admin/agent-payments');
-      const data = await response.json();
-      
-      // DEFENSIVE: Handle multiple possible response formats
-      const paymentsArray = Array.isArray(data) ? data : (data?.payments || data?.transactions || []);
-      setPayments(paymentsArray);
-    } catch (error) {
-      console.error('Error fetching payments:', error);
-      toast.error('Failed to load payment history');
-      setPayments([]); // Set empty array on error to prevent UI crashes
     } finally {
       setLoading(false);
     }
@@ -84,25 +64,22 @@ export default function AdminAgentPaymentsPage() {
   // ==================== PAYMENT PROCESSING ====================
   
   /**
-   * Handles direct payment submission to selected agent
-   * Validates input and redirects to eSewa payment gateway
+   * Initiates a direct payment to an agent via eSewa
+   * Redirects to eSewa payment page for processing
    */
-  const handlePaymentSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validate payment details
+  const handleDirectPayment = async () => {
+    // Validate payment amount
     if (!selectedAgent || !paymentAmount || parseFloat(paymentAmount) <= 0) {
       toast.error('Please select an agent and enter a valid amount');
       return;
     }
 
     setIsProcessingPayment(true);
-
     try {
-      // Create unique product ID for this transaction
+      // Create unique product ID for this payment
       const productId = `direct_payment_${selectedAgent.id}_${Date.now()}`;
       
-      // Initiate payment with eSewa gateway
+      // Initiate payment with eSewa
       const esewaRes = await fetch('/api/esewa/initiate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,19 +128,9 @@ export default function AdminAgentPaymentsPage() {
 
   /**
    * Calculates remaining amount owed to an agent
-   * Total earnings minus total successful payments
    */
   const getRemainingOwed = (agent) => {
-    // Filter successful direct payments for this agent
-    const agentPayments = payments.filter(p => 
-      p.userId === agent.id && 
-      p.type === 'direct_payment' && 
-      p.status !== 'FAILED'
-    );
-    // Sum total paid amount
-    const totalPaid = agentPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-    // Return remaining owed (never negative)
-    return Math.max(0, (agent.totalEarnings || 0) - totalPaid);
+    return Math.max(0, (agent.totalEarnings || 0) - (agent.totalPaid || 0));
   };
 
   // ==================== FILTERING & PAGINATION ====================
@@ -176,22 +143,23 @@ export default function AdminAgentPaymentsPage() {
     agent.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  /**
-   * Filter payments based on search query
-   * Searches by note, agent name, or agent email
-   */
-  const filteredPayments = payments.filter(payment => {
-    const agent = agents.find(a => a.id === payment.userId);
-    return payment.note?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           agent?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           agent?.email?.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-
-  // Pagination calculations
-  const totalPages = Math.max(1, Math.ceil(filteredPayments.length / itemsPerPage));
+  // Pagination calculations for agents grid
+  const totalPages = Math.max(1, Math.ceil(filteredAgents.length / itemsPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * itemsPerPage;
-  const paginatedPayments = filteredPayments.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedAgents = filteredAgents.slice(startIndex, startIndex + itemsPerPage);
+
+  // ==================== LOADING STATE ====================
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
 
   // ==================== LOADING STATE ====================
   if (loading) {
@@ -219,7 +187,7 @@ export default function AdminAgentPaymentsPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Agent Payments</h1>
-              <p className="text-gray-600">Manage agent payments and view payment history</p>
+              <p className="text-gray-600">Send payments to agents via eSewa</p>
             </div>
           </div>
 
@@ -245,9 +213,9 @@ export default function AdminAgentPaymentsPage() {
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-gray-800"
                 >
                   <option value="" className="font-normal">Choose an agent...</option>
-                  {filteredAgents.map(agent => (
+                  {agents.map(agent => (
                     <option key={agent.id} value={agent.id} className="font-bold text-gray-900">
-                      {agent.name} ({agent.email}) - Remaining to Pay: Rs. {getRemainingOwed(agent)}
+                      {agent.name} ({agent.email}) - Remaining: Rs. {getRemainingOwed(agent)}
                     </option>
                   ))}
                 </select>
@@ -282,7 +250,7 @@ export default function AdminAgentPaymentsPage() {
             
             {/* Submit Button */}
             <button
-              onClick={handlePaymentSubmit}
+              onClick={handleDirectPayment}
               disabled={isProcessingPayment || !selectedAgent || !paymentAmount}
               className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors flex items-center gap-2"
             >
@@ -306,120 +274,107 @@ export default function AdminAgentPaymentsPage() {
               <FaSearch className="text-gray-400" />
               <input
                 type="text"
-                placeholder="Search agents or payments by name, email, or note..."
+                placeholder="Search agents by name or email..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  setCurrentPage(1); // Reset to first page when searching
+                  setCurrentPage(1);
                 }}
                 className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
               />
             </div>
           </div>
 
-          {/* ==================== PAYMENT HISTORY TABLE ==================== */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Payment History</h2>
+          {/* ==================== AGENTS GRID ==================== */}
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-indigo-600 mx-auto"></div>
+              <p className="text-slate-500 mt-6 font-medium">Loading agents...</p>
             </div>
-            
-            {/* Empty State */}
-            {filteredPayments.length === 0 ? (
-              <div className="p-12 text-center">
-                <FaDollarSign className="text-5xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Payment Records Found</h3>
-                <p className="text-gray-500">No payments found matching your search criteria.</p>
+          ) : filteredAgents.length > 0 ? (
+            <div>
+              {/* Agents Grid - Responsive: 1 column on mobile, 2 on tablet, 3 on desktop */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {paginatedAgents.map((agent) => (
+                  <div
+                    key={agent.id}
+                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-300 transition-all"
+                  >
+                    {/* Agent Avatar and Status */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border border-gray-200">
+                          {agent.profilePicture || agent.photoUrl ? (
+                            <img src={agent.profilePicture || agent.photoUrl} alt={agent.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <FaUser className="text-gray-400 text-xl" />
+                          )}
+                        </div>
+                      </div>
+                      <span className="bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-semibold">
+                        Active
+                      </span>
+                    </div>
+                    
+                    {/* Agent Basic Info */}
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">{agent.name}</h3>
+                    <p className="text-sm text-gray-500 truncate">{agent.email}</p>
+                    {agent.phoneNumber && (
+                      <p className="text-sm text-gray-500 mt-1 truncate">{agent.phoneNumber}</p>
+                    )}
+                    
+                    {/* Financial Summary */}
+                    <div className="space-y-3 mt-6">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">Gross Earnings</span>
+                        <span className="font-semibold text-gray-900">Rs. {agent.totalEarnings || 0}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">Paid by Admin</span>
+                        <span className="font-semibold text-gray-900">Rs. {agent.totalPaid || 0}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm pt-3 border-t border-gray-100">
+                        <span className="font-medium text-gray-900">Pending Owed</span>
+                        <span className="font-bold text-red-600">Rs. {getRemainingOwed(agent)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ) : (
-              // Payment Table - Responsive with horizontal scroll
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Note</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedPayments.map((payment) => {
-                      const agent = agents.find(a => a.id === payment.userId);
-                      return (
-                        <tr key={payment.id} className="hover:bg-gray-50">
-                          {/* Agent Info with Avatar */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                                <FaUser className="text-blue-600 text-sm" />
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{agent?.name || 'Unknown Agent'}</div>
-                                <div className="text-xs text-gray-500">{agent?.email || 'N/A'}</div>
-                              </div>
-                            </div>
-                           </td>
-                          {/* Payment Amount */}
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-bold text-green-600">Rs. {payment.amount}</div>
-                           </td>
-                          {/* Payment Type */}
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">
-                              {payment.type === 'agent_payment' ? 'Work Completion' : 
-                               payment.type === 'direct_payment' ? 'Direct Payment' : 'Other'}
-                            </div>
-                           </td>
-                          {/* Payment Note with tooltip */}
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 max-w-xs truncate" title={payment.note}>
-                              {payment.note || 'No note'}
-                            </div>
-                           </td>
-                          {/* Payment Date */}
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-500">
-                              {new Date(payment.createdAt).toLocaleDateString()}
-                            </div>
-                           </td>
-                          {/* Status Badge */}
-                          <td className="px-6 py-4">
-                            {getStatusBadge(payment.status)}
-                           </td>
-                         </tr>
-                      );
-                    })}
-                  </tbody>
-                 </table>
+
+              {/* Pagination Controls - Shows page numbers */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2">
+                  <span className="text-sm font-medium text-gray-500 mr-2">Page:</span>
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const pageNumber = i + 1;
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => setCurrentPage(pageNumber)}
+                        className={`min-w-[40px] h-10 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
+                          safeCurrentPage === pageNumber
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            // Empty State - No agents found
+            <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm max-w-2xl mx-auto">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100">
+                <FaUser className="text-slate-300 text-3xl" />
               </div>
-            )}
-            
-            {/* ==================== PAGINATION CONTROLS ==================== */}
-            {!loading && totalPages > 1 && (
-              <div className="flex items-center justify-end gap-1.5 text-xs text-gray-700 bg-gray-50 px-4 py-3 border-t border-gray-200">
-                <span className="mr-0.5">Show</span>
-                {Array.from({ length: totalPages }).map((_, index) => {
-                  const pageNumber = index + 1;
-                  return (
-                    <button
-                      key={pageNumber}
-                      type="button"
-                      onClick={() => setCurrentPage(pageNumber)}
-                      className={`px-2 py-0.5 rounded border text-xs transition-colors ${
-                        safeCurrentPage === pageNumber
-                          ? 'bg-blue-600 text-white border-blue-600' // Active page style
-                          : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100' // Inactive page style
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+              <p className="text-slate-600 text-xl font-bold mb-2">No agents found</p>
+              <p className="text-slate-400 text-sm font-medium">Try adjusting your search criteria</p>
+            </div>
+          )}
         </div>
       </div>
 
