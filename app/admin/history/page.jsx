@@ -31,8 +31,8 @@ export default function HistoryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchData();
+  useEffect(() => { //when page loads, execute this function to download all the data from the database and prepare it for rendering
+    fetchData(); //
   }, []);
 
   // --- DATABASE DOWNLOADING FUNCTION ---
@@ -44,22 +44,22 @@ export default function HistoryPage() {
       const userStr = localStorage.getItem('user');
       const currentUserData = userStr ? JSON.parse(userStr) : null;
       setCurrentUser(currentUserData);
-      if (!currentUserData) return; // Halt execution if they bypassed login
+      if (!currentUserData) return; // this should never happen because of our route protection, but just in case, we won't fetch any data if there's no valid session
 
       // 2. Decide Security Role boundaries (Agents only see their OWN history. Admins see ALL history)
       const appsUrl = currentUserData.role === 'agent' 
-        ? `/api/applications?agentId=${currentUserData.id}` 
-        : `/api/applications`;
+        ? `/api/applications?agentId=${currentUserData.id}` //for ageents, only fetch their assigned applications
+        : `/api/applications`; //for admins
 
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
       // 3. Parallel fetching: Download all 4 datasets absolutely simultaneously to minimize loading screen time
       const [servicesRes, usersRes, appsRes, agentsRes] = await Promise.all([
-        fetch('/api/admin/services', { headers: authHeaders }).then(r => r.json()),
-        fetch('/api/users', { headers: authHeaders }).then(r => r.json()), 
-        fetch(appsUrl).then(r => r.json()), // Uses our dynamic URL from step 2
-        fetch('/api/agents', { headers: authHeaders }).then(r => r.json())
+        fetch('/api/admin/services', { headers: authHeaders }).then(r => r.json()), //GET SERVICES (ALL USERS CAN SEE ALL SERVICES)
+        fetch('/api/users', { headers: authHeaders }).then(r => r.json()), // USERS DEPENDS ON ROLE (AGENTS CAN ONLY SEE USERS THEY INTERACTED WITH)
+        fetch(appsUrl).then(r => r.json()), // GET APPLICATIONS DEPENDS ON ROLE
+        fetch('/api/agents', { headers: authHeaders }).then(r => r.json()) //Get Assigned Agent Data for user applications 
       ]);
 
       // 4. Optimization: Convert Lists into Dictionaries (HashMaps)

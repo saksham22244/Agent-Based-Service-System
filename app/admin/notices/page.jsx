@@ -21,7 +21,6 @@ export default function NoticePage() {
   const [currentUser, setCurrentUser] = useState(null); // The currently logged-in Admin
   const [loading, setLoading] = useState(false); // Used to show the "Sending..." spinning wheel
   const [deleteLoading, setDeleteLoading] = useState({}); // Tracking which specific notice is actively being deleted
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // Notice object pending delete confirmation
   const [searchQuery, setSearchQuery] = useState('');
   
   // Pagination tracking (cutting long lists into pages of 5)
@@ -63,15 +62,15 @@ export default function NoticePage() {
       // If an Admin sends 1 notice to 50 users, the DB makes 50 individual records.
       // This loop merges duplicate messages sent at the exact same minute into ONE visual box.
       rawNotices.forEach(notice => {
-        const timeKey = new Date(notice.createdAt).toISOString().substring(0, 16); // Round time to the exact minute
+        const timeKey = new Date(notice.createdAt).toISOString().substring(0, 16); // if sent in 1 mins then only group same msg
         const key = `${notice.title}|${notice.message}|${notice.recipientType}|${timeKey}`;
         
         if (!groupedMap.has(key)) {
-          groupedMap.set(key, { ...notice, groupedIds: [notice.id] });
-        } else {
-          const group = groupedMap.get(key);
-          group.groupedIds.push(notice.id);
-          group.recipientName = `Multiple (${group.groupedIds.length})`;
+          groupedMap.set(key, { ...notice, groupedIds: [notice.id] }); // Start a new group
+        } else { // If the same message already exists, add this notice's ID to the groupedIds array and update recipientName to show it's a group
+          const group = groupedMap.get(key); // Add this notice's ID to the existing group
+          group.groupedIds.push(notice.id); //  Update the recipientName to show it's a group (e.g. "Multiple (3)")
+          group.recipientName = `Multiple (${group.groupedIds.length})`; // Update the recipientName to show it's a group (e.g. "Multiple (3)")
         }
       });
       
@@ -119,15 +118,11 @@ export default function NoticePage() {
 
     try {
       // POST the data to our backend Next.js API string
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
-
       const response = await fetch('/api/admin/notices/send', {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           title,           // Note: Next.js API parses this `req.body` and creates MongoDB items
           message,
@@ -161,18 +156,10 @@ export default function NoticePage() {
   };
 
   // --- DELETING LOGIC ---
-  const handleDelete = (notice) => {
-    setDeleteConfirm(notice);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteConfirm) return;
-
-    const notice = deleteConfirm;
-    setDeleteConfirm(null);
-
-    const token = localStorage.getItem('token');
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const handleDelete = async (notice) => {
+    if (!confirm('Are you sure you want to delete this notice?')) {
+      return; // Stop if they click 'Cancel' on the browser prompt
+    }
 
     // Set a loading indicator ONLY for the specific card being clicked
     setDeleteLoading(prev => ({ ...prev, [notice.id]: true }));
@@ -181,7 +168,7 @@ export default function NoticePage() {
       // If it is a grouped message (1 sent to multiple people), delete all records inside the group
       if (notice.groupedIds && notice.groupedIds.length > 1) {
         const deletePromises = notice.groupedIds.map(id => 
-          fetch(`/api/admin/notices/${id}`, { method: 'DELETE', headers })
+          fetch(`/api/admin/notices/${id}`, { method: 'DELETE' })
         );
         const responses = await Promise.all(deletePromises);
         
@@ -194,7 +181,6 @@ export default function NoticePage() {
       } else {
         const response = await fetch(`/api/admin/notices/${notice.id}`, {
           method: 'DELETE',
-          headers,
         });
 
         if (response.ok) {
@@ -487,35 +473,6 @@ export default function NoticePage() {
           )}
         </div>
       </div>
-
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4 py-6">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-auto p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-semibold text-gray-900 mb-3">Delete Confirmation</h2>
-            <p className="text-gray-600 mb-2">Are you sure you want to delete this notice?</p>
-            <p className="text-gray-800 font-medium mb-4">{deleteConfirm.title}</p>
-            <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setDeleteConfirm(null);
-                  toast.info('Notice deletion cancelled');
-                }}
-                className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteConfirm}
-                className="w-full sm:w-auto px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <ToastContainer position="top-right" autoClose={3000} />
     </div>

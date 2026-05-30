@@ -32,7 +32,7 @@ export default function AdminAgentPaymentsPage() {
     }
 
     // SECURITY: Verify admin/superadmin role
-    const user = JSON.parse(userData); //convert json string to js object so each property can be accessed
+    const user = JSON.parse(userData); //convert json string to js object
     if (user.role !== 'admin' && user.role !== 'superadmin') {
       router.push('/dashboard');
       return;

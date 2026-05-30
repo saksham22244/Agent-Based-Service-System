@@ -7,26 +7,49 @@ import { FaPlus, FaPen, FaBell, FaEnvelope, FaCertificate, FaUserCheck, FaTimes,
 import { toast } from 'react-toastify';
 
 export default function ServicePage() {
-  const [services, setServices] = useState([]);
-  const [userRole, setUserRole] = useState('admin');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  // ==================== STATE MANAGEMENT ====================
+  
+  // --- Data State ---
+  const [services, setServices] = useState([]);           // Array of all services from API
+  const [userRole, setUserRole] = useState('admin');      // Current user's role (admin/superadmin)
+  const [loading, setLoading] = useState(true);           // Loading state for data fetching
+  const [error, setError] = useState('');                 // Error message display
+  const [searchQuery, setSearchQuery] = useState('');     // Search/filter input value
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null); // ID of service pending deletion
 
-  const [newService, setNewService] = useState({ 
+  // --- New Service Form State ---
+  const [newService, setNewService] = useState({          // Form data for creating new service
     name: '', 
     price: '',
     description: '',
-    icon: '📋',
-    color: 'bg-blue-50',
-    borderColor: 'border-blue-200'
+    icon: '📋',                    // Default emoji icon
+    color: 'bg-blue-50',          // Card background color
+    borderColor: 'border-blue-200' // Card border color
   });
-  const [editingPriceId, setEditingPriceId] = useState(null);
-  const [editPriceValue, setEditPriceValue] = useState('');
+  
+  // --- Price Editing State ---
+  const [editingPriceId, setEditingPriceId] = useState(null); // ID of service being edited
+  const [editPriceValue, setEditPriceValue] = useState('');   // Temporary price value during edit
+  
+  // --- File and Form Fields State ---
+  const [imageFile, setImageFile] = useState(null);           // Uploaded image file
+  const [formFields, setFormFields] = useState([]);           // Dynamic form fields for user input
+  
+  // --- UI Modal State ---
+  const [isAddingService, setIsAddingService] = useState(false); // Add service modal visibility
+  const [isSaving, setIsSaving] = useState(false);               // Save button loading state
+  const [approvalConfirm, setApprovalConfirm] = useState(null);  // Approval confirmation modal {id, status}
 
+  // ==================== PRICE UPDATE HANDLER ====================
+  
+  /**
+   * Updates the price of a service inline without refreshing the page
+   * @param {Event} e - Click event to stop propagation
+   * @param {string} id - Service ID to update
+   */
   const handleUpdatePrice = async (e, id) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent card click from interfering
+    
     try {
       const response = await fetch(`/api/admin/services/${id}`, {
         method: 'PATCH',
@@ -36,35 +59,61 @@ export default function ServicePage() {
         },
         body: JSON.stringify({ price: Number(editPriceValue) }),
       });
+      
       if (!response.ok) throw new Error('Failed to update price');
       
+      // Optimistic UI update - update local state immediately
       setServices(services.map(s => s.id === id ? { ...s, price: Number(editPriceValue) } : s));
-      setEditingPriceId(null);
+      setEditingPriceId(null); // Exit edit mode
       toast.success('Price updated successfully!');
     } catch (err) {
       toast.error('Failed to update price');
+      console.error(err);
     }
   };
-  const [imageFile, setImageFile] = useState(null);
-  const [formFields, setFormFields] = useState([]);
-  
-  const [isAddingService, setIsAddingService] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
+  // ==================== DYNAMIC FORM FIELD HANDLERS ====================
+  
+  /**
+   * Adds a new dynamic field to the service form
+   * These fields will be shown to users when they apply for this service
+   */
   const handleAddField = () => {
-    setFormFields([...formFields, { id: Date.now().toString(), name: '', label: '', type: 'text', required: true }]);
+    setFormFields([...formFields, { 
+      id: Date.now().toString(), // Unique ID for React key
+      name: '',                   // Database field name
+      label: '',                  // Display label for users
+      type: 'text',               // Input type (text, email, number, date, file)
+      required: true             // Whether field is mandatory
+    }]);
   };
 
+  /**
+   * Removes a dynamic field from the form
+   * @param {string} id - Field ID to remove
+   */
   const handleRemoveField = (id) => {
     setFormFields(formFields.filter(f => f.id !== id));
   };
 
+  /**
+   * Updates a specific field's property value
+   * @param {string} id - Field ID
+   * @param {string} key - Property to update (name, label, type, required)
+   * @param {any} value - New value for the property
+   */
   const handleFieldChange = (id, key, value) => {
     setFormFields(formFields.map(f => f.id === id ? { ...f, [key]: value } : f));
   };
 
-  // Fetch services from backend on component mount
+  // ==================== INITIALIZATION ====================
+  
+  /**
+   * Loads user data and services when component mounts
+   * Also checks URL for search query parameter
+   */
   useEffect(() => {
+    // Get logged-in user from localStorage
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
@@ -74,9 +123,10 @@ export default function ServicePage() {
         console.error('Error parsing user', e);
       }
     }
-    fetchServices();
+    
+    fetchServices(); // Load services from API
 
-    // Handle search query from URL
+    // Check URL for search parameter (e.g., ?search=birth)
     const params = new URLSearchParams(window.location.search);
     const search = params.get('search');
     if (search) {
@@ -84,10 +134,25 @@ export default function ServicePage() {
     }
   }, []);
 
-  const handleApproveService = async (id, status) => {
-    if (!window.confirm(`Are you sure you want to mark this service as ${status}?`)) {
-      return;
-    }
+  // ==================== SERVICE APPROVAL HANDLER ====================
+  
+  /**
+   * Opens the approval confirmation modal
+   * @param {string} id - Service ID
+   * @param {string} status - 'approved' or 'rejected'
+   */
+  const handleApproveService = (id, status) => {
+    setApprovalConfirm({ id, status });
+  };
+
+  /**
+   * Confirms and processes the service approval/rejection
+   */
+  const handleApproveServiceConfirm = async () => {
+    if (!approvalConfirm) return;
+
+    const { id, status } = approvalConfirm;
+    setApprovalConfirm(null);
 
     try {
       const response = await fetch(`/api/admin/services/${id}`, {
@@ -103,6 +168,7 @@ export default function ServicePage() {
         throw new Error(`Failed to ${status} service`);
       }
 
+      // Update local state
       setServices(services.map(s => s.id === id ? { ...s, approvalStatus: status } : s));
       toast.success(`Service ${status} successfully!`);
     } catch (err) {
@@ -111,6 +177,11 @@ export default function ServicePage() {
     }
   };
 
+  // ==================== DATA FETCHING ====================
+  
+  /**
+   * Fetches all services from the backend API
+   */
   const fetchServices = async () => {
     try {
       setLoading(true);
@@ -131,9 +202,28 @@ export default function ServicePage() {
     }
   };
 
+  // ==================== CREATE NEW SERVICE ====================
+  
+  /**
+   * Creates a new service with all configurations
+   * Validates duplicate service names before creation
+   * Sends multipart form data with image and dynamic fields
+   */
   const handleAddService = async () => {
+    // Validate required fields
     if (!newService.name.trim()) {
       toast.warning('Please enter a service name');
+      return;
+    }
+
+    // Check for duplicate service names
+    const serviceExists = services.some(
+      service =>
+        service.name?.trim().toLowerCase() === newService.name.trim().toLowerCase()
+    );
+
+    if (serviceExists) {
+      toast.warning('A service with this name already exists');
       return;
     }
 
@@ -141,6 +231,7 @@ export default function ServicePage() {
       setIsSaving(true);
       setError('');
 
+      // Build FormData for multipart upload (supports file uploads)
       const formData = new FormData();
       formData.append('name', newService.name);
       formData.append('description', newService.description);
@@ -150,6 +241,7 @@ export default function ServicePage() {
       formData.append('active', 'true');
       formData.append('price', newService.price);
       
+      // Add creator information
       const userStr = localStorage.getItem('user');
       if (userStr) {
         const userObj = JSON.parse(userStr);
@@ -157,12 +249,15 @@ export default function ServicePage() {
         formData.append('creatorRole', userObj.role);
       }
 
+      // Add optional image thumbnail
       if (imageFile) {
         formData.append('image', imageFile);
       }
       
+      // Add dynamic form fields (JSON stringified)
       formData.append('formFields', JSON.stringify(formFields));
 
+      // Send to API
       const response = await fetch('/api/admin/services', {
         method: 'POST',
         headers: {
@@ -178,7 +273,7 @@ export default function ServicePage() {
 
       const createdService = await response.json();
       
-      // Add the new service to the list
+      // Add new service to list
       setServices([...services, createdService]);
       
       // Reset form
@@ -204,10 +299,19 @@ export default function ServicePage() {
     }
   };
 
+  // ==================== DELETE SERVICE ====================
+  
+  /**
+   * Shows delete confirmation modal
+   * @param {string} id - Service ID to delete
+   */
   const handleRemoveService = (id) => {
     setDeleteConfirmId(id);
   };
 
+  /**
+   * Permanently deletes a service after user confirmation
+   */
   const confirmRemoveService = async () => {
     if (!deleteConfirmId) return;
     const id = deleteConfirmId;
@@ -226,7 +330,7 @@ export default function ServicePage() {
         throw new Error(errorData.error || 'Failed to delete service');
       }
 
-      // Remove the service from the list
+      // Remove from local state
       setServices(services.filter(service => service.id !== id));
       toast.success('Service deleted successfully!');
     } catch (err) {
@@ -238,6 +342,9 @@ export default function ServicePage() {
     }
   };
 
+  // ==================== CONSTANT DATA FOR UI ====================
+  
+  // Available emoji icons for service cards
   const availableIcons = [
     { value: '📋', label: 'Form' },
     { value: '📝', label: 'Document' },
@@ -253,6 +360,7 @@ export default function ServicePage() {
     { value: '📊', label: 'Report' },
   ];
 
+  // Available color themes for service cards
   const availableColors = [
     { bg: 'bg-blue-50', border: 'border-blue-200', name: 'Blue' },
     { bg: 'bg-green-50', border: 'border-green-200', name: 'Green' },
@@ -262,16 +370,22 @@ export default function ServicePage() {
     { bg: 'bg-pink-50', border: 'border-pink-200', name: 'Pink' },
   ];
 
+  // ==================== RENDER UI ====================
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
+        
+        {/* Top Gradient Bar - Visual Accent */}
         <div className="h-1 bg-gradient-to-r from-blue-500 to-blue-600"></div>
         
+        {/* Header Navigation Bar */}
         <div className="bg-white px-4 md:px-8 py-4 border-b border-gray-200">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
+            
+            {/* Title Section */}
             <div className="flex items-center space-x-3">
               <div className="text-blue-600">
                 <FaPen className="text-xl md:text-2xl" />
@@ -281,6 +395,7 @@ export default function ServicePage() {
               </div>
             </div>
             
+            {/* Navigation Links to Other Admin Pages */}
             <div className="flex items-center space-x-3 md:space-x-6">
               <Link href="/admin/notices" className="inline-flex items-center space-x-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm">
                 <FaBell className="text-sm" />
@@ -294,14 +409,19 @@ export default function ServicePage() {
           </div>
         </div>
 
+        {/* Main Content Container */}
         <div className="flex-1 p-4 md:p-8">
+          
+          {/* Page Header */}
           <div className="mb-6 md:mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Services</h1>
             <p className="text-gray-600 text-sm md:text-base">Manage and organize all available services</p>
           </div>
 
-          {/* Stats Section */}
+          {/* ===== STATISTICS CARDS SECTION ===== */}
           <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            
+            {/* Total Services Card */}
             <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -314,6 +434,7 @@ export default function ServicePage() {
               </div>
             </div>
             
+            {/* Active Services Card */}
             <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -328,6 +449,7 @@ export default function ServicePage() {
               </div>
             </div>
             
+            {/* Categories Card */}
             <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -340,6 +462,7 @@ export default function ServicePage() {
               </div>
             </div>
             
+            {/* Last Updated Card */}
             <div className="bg-white rounded-lg md:rounded-xl p-4 md:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -353,21 +476,22 @@ export default function ServicePage() {
             </div>
           </div>
 
-          {/* Error Message */}
+          {/* Error Message Display */}
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
               {error}
             </div>
           )}
 
-          {/* Loading State */}
+          {/* ===== MAIN CONTENT: LOADING OR SERVICES GRID ===== */}
           {loading ? (
+            // Loading State
             <div className="flex items-center justify-center py-12">
               <div className="text-gray-600">Loading services...</div>
             </div>
           ) : (
             <>
-              {/* Internal Search / Filter Bar */}
+              {/* Search / Filter Bar */}
               <div className="mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
                  <div className="flex-1 relative">
                     <input 
@@ -377,10 +501,13 @@ export default function ServicePage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-gray-900 placeholder-gray-500"
                     />
+                    {/* Search Icon */}
                     <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                  </div>
+                 
+                 {/* Clear Search Button */}
                  {searchQuery && (
                    <button 
                      onClick={() => setSearchQuery('')}
@@ -391,8 +518,12 @@ export default function ServicePage() {
                  )}
               </div>
 
-              {/* Services Grid */}
+              
+
+              {/* Services Grid - Responsive Card Layout */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                
+                {/* Filter and render services based on search query */}
                 {services
                   .filter(service => 
                     service.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -403,7 +534,10 @@ export default function ServicePage() {
                 key={service.id}
                 className="bg-white border hover:shadow-xl transition-shadow border-gray-200 rounded-xl overflow-hidden flex flex-col relative group"
               >
+                {/* Service Card Header with Color Theme */}
                 <div className={`${service.color} ${service.borderColor} p-6 flex flex-col items-center justify-center text-center relative border-b-2`}>
+                  
+                  {/* Delete Button - Only visible on hover */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -414,6 +548,8 @@ export default function ServicePage() {
                   >
                     ×
                   </button>
+                  
+                  {/* Service Icon or Image */}
                   {service.imageUrl && !service.imageUrl.startsWith('/uploads/') ? (
                     <img src={service.imageUrl} alt={service.name} className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-full border-4 border-white shadow-sm mb-4" />
                   ) : (
@@ -421,18 +557,24 @@ export default function ServicePage() {
                       <span className="text-3xl">{service.icon}</span>
                     </div>
                   )}
+                  
+                  {/* Service Name */}
                   <h3 className="text-lg md:text-xl font-bold text-gray-900 leading-tight">
                     {service.name}
                   </h3>
                 </div>
 
+                {/* Card Body */}
                 <div className="p-4 md:p-5 flex-1 flex flex-col bg-white">
+                  {/* Description */}
                   <p className="text-xs md:text-sm text-gray-600 line-clamp-3 mb-4 flex-1 text-left">
                     {service.description || 'No description provided for this service block.'}
                   </p>
                   
+                  {/* Price Section with Inline Edit */}
                   <div className="flex flex-col gap-2 relative z-20 mt-auto">
                     {editingPriceId === service.id ? (
+                      // Edit Mode
                       <div className="flex items-center gap-1 mt-1" onClick={e => e.stopPropagation()}>
                          <input 
                            type="number" 
@@ -441,10 +583,15 @@ export default function ServicePage() {
                            className="w-20 px-1 py-1 border border-gray-300 rounded text-sm text-gray-900 outline-none focus:ring-1 focus:ring-blue-500" 
                            autoFocus
                          />
-                         <button onClick={(e) => handleUpdatePrice(e, service.id)} className="bg-green-500 text-white rounded p-1.5 hover:bg-green-600"><FaCheck size={12} /></button>
-                         <button onClick={(e) => { e.stopPropagation(); setEditingPriceId(null); }} className="bg-gray-400 text-white rounded p-1.5 hover:bg-gray-500"><FaTimes size={12}/></button>
+                         <button onClick={(e) => handleUpdatePrice(e, service.id)} className="bg-green-500 text-white rounded p-1.5 hover:bg-green-600">
+                           <FaCheck size={12} />
+                         </button>
+                         <button onClick={(e) => { e.stopPropagation(); setEditingPriceId(null); }} className="bg-gray-400 text-white rounded p-1.5 hover:bg-gray-500">
+                           <FaTimes size={12}/>
+                         </button>
                       </div>
                     ) : (
+                      // Display Mode
                       <div className="flex items-center gap-2 mt-1" onClick={e => e.stopPropagation()}>
                         <span className="text-base md:text-lg font-bold text-blue-600 text-left">Rs. {service.price || 0}</span>
                         {(userRole === 'admin' || userRole === 'superadmin') && (
@@ -459,6 +606,7 @@ export default function ServicePage() {
                       </div>
                     )}
                     
+                    {/* Approval Status Badges */}
                     <div className="flex items-center flex-wrap gap-2 mt-2">
                       {service.approvalStatus === 'pending' && (
                         <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-[10px] md:text-xs font-bold rounded-md border border-yellow-200 uppercase tracking-widest whitespace-nowrap">
@@ -474,6 +622,7 @@ export default function ServicePage() {
                   </div>
                 </div>
 
+                {/* Approval Overlay - Shows for pending services (admin only) */}
                 {service.approvalStatus === 'pending' && (userRole === 'superadmin' || userRole === 'admin') && (
                   <div className="absolute inset-0 bg-black/70 rounded-xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 gap-3 backdrop-blur-[2px]">
                     <button
@@ -499,7 +648,7 @@ export default function ServicePage() {
               </div>
             ))}
 
-            {/* Add Service Card */}
+            {/* Add New Service Card - Click to open modal */}
             <div 
               onClick={() => setIsAddingService(true)}
               className="border-2 border-dashed border-gray-300 rounded-xl md:rounded-2xl p-4 md:p-6 flex flex-col items-center justify-center text-center min-h-[160px] md:min-h-[220px] hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 cursor-pointer"
@@ -524,11 +673,13 @@ export default function ServicePage() {
         </div>
       </div>
 
-      {/* Desktop Optimized Modal */}
+      {/* ==================== ADD SERVICE MODAL ==================== */}
+      {/* Full-featured modal for creating new services with preview */}
       {isAddingService && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[110]">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
+            
+            {/* Modal Header with Gradient */}
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white shrink-0">
               <div className="flex justify-between items-center">
                 <div>
@@ -552,16 +703,19 @@ export default function ServicePage() {
               </div>
             </div>
 
-            {/* Modal Body - Two Column Layout */}
+            {/* Modal Body - Two Column Layout (Preview + Form) */}
             <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column - Preview */}
+                
+                {/* LEFT COLUMN - Live Service Preview */}
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                       <FaCertificate className="mr-2 text-blue-500" />
                       Service Preview
                     </h3>
+                    
+                    {/* Live Preview Card - Updates in real-time as user types */}
                     <div className={`${newService.color} ${newService.borderColor} border-2 rounded-2xl p-8 flex flex-col items-center justify-center text-center min-h-[300px]`}>
                       <div className="w-20 h-20 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center mb-6">
                         <span className="text-4xl">{newService.icon}</span>
@@ -586,6 +740,7 @@ export default function ServicePage() {
                     </div>
                   </div>
 
+                  {/* Preview Note */}
                   <div className="bg-gray-50 rounded-xl p-5">
                     <h4 className="font-medium text-gray-700 mb-3">Preview Note</h4>
                     <p className="text-sm text-gray-600">
@@ -594,12 +749,12 @@ export default function ServicePage() {
                   </div>
                 </div>
 
-                {/* Right Column - Form */}
+                {/* RIGHT COLUMN - Service Configuration Form */}
                 <div className="space-y-6">
-                  {/* Service Name */}
                   <div className="bg-white border border-gray-200 rounded-xl p-5">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Service Details</h3>
                     
+                    {/* Service Name Input */}
                     <div className="mb-6">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Service Name *
@@ -622,7 +777,7 @@ export default function ServicePage() {
                       </p>
                     </div>
 
-                    {/* Service Price */}
+                    {/* Service Price Input */}
                     <div className="mb-6">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Service Price (Rs.) *
@@ -638,7 +793,7 @@ export default function ServicePage() {
                       />
                     </div>
 
-                    {/* Service Description */}
+                    {/* Service Description Textarea */}
                     <div className="mb-6">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Service Description
@@ -652,7 +807,7 @@ export default function ServicePage() {
                       />
                     </div>
 
-                    {/* Icon Selection */}
+                    {/* Icon Selection Grid */}
                     <div className="mb-6">
                       <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
                         <FaIcons className="mr-2 text-blue-500" />
@@ -664,7 +819,7 @@ export default function ServicePage() {
                             key={iconObj.value}
                             type="button"
                             onClick={() => setNewService({ ...newService, icon: iconObj.value })}
-                            className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center p-2 ${
+                            className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center p-2 relative ${
                               newService.icon === iconObj.value 
                                 ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
                                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -672,6 +827,7 @@ export default function ServicePage() {
                           >
                             <span className="text-2xl mb-1">{iconObj.value}</span>
                             <span className="text-xs text-gray-600 truncate w-full">{iconObj.label}</span>
+                            {/* Selected Icon Checkmark */}
                             {newService.icon === iconObj.value && (
                               <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
                                 <FaCheck className="text-white text-xs" />
@@ -682,7 +838,7 @@ export default function ServicePage() {
                       </div>
                     </div>
 
-                    {/* Image Upload */}
+                    {/* Image Upload Section */}
                     <div className="mb-6 border border-gray-200 rounded-xl p-4">
                       <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
                         <FaImage className="mr-2 text-blue-500" />
@@ -700,7 +856,7 @@ export default function ServicePage() {
                       />
                     </div>
 
-                    {/* Dynamic Form Fields */}
+                    {/* Dynamic Form Fields Builder */}
                     <div className="mb-6 border border-gray-200 rounded-xl p-4">
                       <div className="flex justify-between items-center mb-3">
                         <label className="block text-sm font-medium text-gray-700 flex items-center">
@@ -712,6 +868,7 @@ export default function ServicePage() {
                         </button>
                       </div>
                       
+                      {/* Empty State or Field List */}
                       {formFields.length === 0 ? (
                         <div className="text-center py-6 bg-gray-50 rounded border border-dashed border-gray-300">
                           <p className="text-xs text-gray-500">No dynamic fields. Click '+ Add Field' to build your form.</p>
@@ -720,10 +877,12 @@ export default function ServicePage() {
                         <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
                           {formFields.map((field, index) => (
                             <div key={field.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200 relative group transition-all">
+                              {/* Remove Field Button */}
                               <button type="button" onClick={() => handleRemoveField(field.id)} className="absolute top-2 right-2 text-gray-300 hover:text-red-500 p-1 bg-white rounded transition shadow-sm">
                                 <FaTrash size={12} />
                               </button>
                               
+                              {/* Field Configuration - Label and Database ID */}
                               <div className="grid grid-cols-2 gap-3 mb-2 pr-8">
                                 <div>
                                   <label className="text-xs font-semibold text-gray-600 block">Field Label</label>
@@ -734,6 +893,8 @@ export default function ServicePage() {
                                   <input type="text" placeholder="e.g. fullName" value={field.name} onChange={(e) => handleFieldChange(field.id, 'name', e.target.value)} className="w-full mt-1 border border-gray-300 text-gray-900 placeholder-gray-500 px-2 py-1.5 text-sm rounded outline-none focus:ring-1 focus:ring-blue-500" required />
                                 </div>
                               </div>
+                              
+                              {/* Field Type and Required Toggle */}
                               <div className="flex gap-4 items-center mt-3 bg-white p-2 rounded border border-gray-100">
                                 <div className="flex-1">
                                   <label className="text-xs font-semibold text-gray-600 block">Input Type</label>
@@ -756,7 +917,7 @@ export default function ServicePage() {
                       )}
                     </div>
 
-                    {/* Color Selection */}
+                    {/* Color Theme Selection Grid */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
                         <FaPalette className="mr-2 text-blue-500" />
@@ -786,7 +947,7 @@ export default function ServicePage() {
                     </div>
                   </div>
 
-                  {/* Existing Services Preview */}
+                  {/* Existing Services Preview Section */}
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                     <h4 className="font-medium text-gray-700 mb-3">Existing Services</h4>
                     <div className="grid grid-cols-2 gap-3">
@@ -809,7 +970,7 @@ export default function ServicePage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Modal Footer - Action Buttons */}
             <div className="p-6 bg-white border-t border-gray-200 shrink-0">
               <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
                   <button
@@ -841,7 +1002,37 @@ export default function ServicePage() {
           </div>
         </div>
       )}
-      {/* Delete Confirmation Modal */}
+      
+      {/* ==================== DELETE CONFIRMATION MODAL ==================== */}
+      {approvalConfirm && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Action</h3>
+              <p className="text-gray-500 text-sm">Are you sure you want to mark this service as <span className="font-semibold text-gray-900">{approvalConfirm.status}</span>?</p>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+              <button 
+                onClick={() => setApprovalConfirm(null)} 
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleApproveServiceConfirm} 
+                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors shadow-sm ${
+                  approvalConfirm.status === 'approved' 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {approvalConfirm.status === 'approved' ? 'Approve' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {deleteConfirmId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">

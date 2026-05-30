@@ -54,6 +54,7 @@ export default function ServicePage() {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
   const [isSaving, setIsSaving] = useState(false);
+  const [approvalConfirm, setApprovalConfirm] = useState(null);
 
   const handleAddField = () => {
     setFormFields([...formFields, { id: Date.now().toString(), name: '', label: '', type: 'text', required: true }]);
@@ -88,10 +89,15 @@ export default function ServicePage() {
     }
   }, []);
 
-  const handleApproveService = async (id, status) => {
-    if (!window.confirm(`Are you sure you want to mark this service as ${status}?`)) {
-      return;
-    }
+  const handleApproveService = (id, status) => {
+    setApprovalConfirm({ id, status });
+  };
+
+  const handleApproveServiceConfirm = async () => {
+    if (!approvalConfirm) return;
+
+    const { id, status } = approvalConfirm;
+    setApprovalConfirm(null);
 
     try {
       const response = await fetch(`/api/admin/services/${id}`, {
@@ -108,6 +114,12 @@ export default function ServicePage() {
       }
 
       setServices(services.map(s => s.id === id ? { ...s, approvalStatus: status } : s));
+      toast.success(`Service ${status} successfully!`);
+    } catch (err) {
+      console.error('Status update err:', err);
+      toast.error('Failed to update service status.');
+    }
+  };
       toast.success(`Service ${status} successfully!`);
     } catch (err) {
       console.error('Status update err:', err);
@@ -140,6 +152,16 @@ export default function ServicePage() {
   const handleAddService = async () => {
     if (!newService.name.trim()) {
       toast.warning('Please enter a service name');
+      return;
+    }
+
+    const serviceExists = services.some(
+      service =>
+        service.name?.trim().toLowerCase() === newService.name.trim().toLowerCase()
+    );
+
+    if (serviceExists) {
+      toast.warning('A service with this name already exists');
       return;
     }
 
@@ -840,6 +862,35 @@ export default function ServicePage() {
                   </button>
                 </div>
               </div>
+          </div>
+        </div>
+      )}
+      {/* Approval Confirmation Modal */}
+      {approvalConfirm && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Action</h3>
+              <p className="text-gray-500 text-sm">Are you sure you want to mark this service as <span className="font-semibold text-gray-900">{approvalConfirm.status}</span>?</p>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+              <button 
+                onClick={() => setApprovalConfirm(null)} 
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleApproveServiceConfirm} 
+                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors shadow-sm ${
+                  approvalConfirm.status === 'approved' 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {approvalConfirm.status === 'approved' ? 'Approve' : 'Reject'}
+              </button>
+            </div>
           </div>
         </div>
       )}
