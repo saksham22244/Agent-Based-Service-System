@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { FaBell, FaClipboardList, FaEnvelope, FaFacebookF, FaHistory, FaInstagram, FaLinkedinIn, FaMapMarkerAlt, FaPaperPlane, FaPhoneAlt, FaTimes, FaTrashAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { MobileHeader } from '@/components/Sidebar';
 import TopHeader from '@/components/TopHeader';
 
 export default function UserHomePage() {
@@ -151,6 +151,10 @@ export default function UserHomePage() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full">
+        <MobileHeader
+          title="User Dashboard"
+          subtitle="Service requests and notices at a glance."
+        />
         <div className="h-1 bg-gradient-to-r from-blue-500 to-[#5C5470] flex-shrink-0"></div>
         <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
           

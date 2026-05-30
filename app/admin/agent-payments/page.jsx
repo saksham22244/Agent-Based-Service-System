@@ -11,7 +11,7 @@ export default function AdminAgentPaymentsPage() {
   const router = useRouter();
   
   // ==================== STATE MANAGEMENT ====================
-  const [agents, setAgents] = useState([]);              // List of all agents
+  const [agents, setAgents] = useState([]);              // List of all agents---agent=hold data ,setAgents=update data and useState([])=initially empty array
   const [payments, setPayments] = useState([]);          // All payment transactions
   const [selectedAgent, setSelectedAgent] = useState(null); // Currently selected agent for payment
   const [loading, setLoading] = useState(true);          // Loading state for UI
@@ -32,7 +32,7 @@ export default function AdminAgentPaymentsPage() {
     }
 
     // SECURITY: Verify admin/superadmin role
-    const user = JSON.parse(userData);
+    const user = JSON.parse(userData); //convert json string to js object so each property can be accessed
     if (user.role !== 'admin' && user.role !== 'superadmin') {
       router.push('/dashboard');
       return;
