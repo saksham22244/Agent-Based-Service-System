@@ -1,65 +1,111 @@
 'use client';
 
+// React hooks used for state and page-load side effects.
 import { useEffect, useState } from 'react';
+
+// Next.js router used for navigation, mainly logout redirect.
 import { useRouter } from 'next/navigation';
+
+// Reusable dashboard layout/navigation components.
 import Sidebar, { MobileHeader } from '@/components/Sidebar';
+
+// Modal form components used by admin to create users, agents, and notices.
 import UserForm from '@/components/UserForm';
 import AgentForm from '@/components/AgentForm';
 import NoticeForm from '@/components/NoticeForm';
+
+// Toast notification library.
 import { toast } from 'react-toastify';
 
 export default function DashboardPage() {
   const router = useRouter();
-  
-  // ==================== STATE MANAGEMENT ====================
-  const [items, setItems] = useState([]);           // Combined list of users and agents
-  const [filter, setFilter] = useState('all');      // Filter: 'all', 'user', 'agent'
-  const [searchQuery, setSearchQuery] = useState(''); // Search input value
-  const [loading, setLoading] = useState(true);     // Loading state for data fetching
-  
-  // Modal states
-  const [viewModal, setViewModal] = useState(null);        // View details modal
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // Delete confirmation modal
-  const [approveConfirm, setApproveConfirm] = useState(null); // Approve confirmation modal
-  const [addUserModal, setAddUserModal] = useState(false);   // Add user form modal
-  const [addAgentModal, setAddAgentModal] = useState(false); // Add agent form modal
-  const [noticeModal, setNoticeModal] = useState(false);     // Send notice modal
-  
-  // Data stores
-  const [users, setUsers] = useState([]);   // Raw users data for notice form
-  const [agents, setAgents] = useState([]); // Raw agents data for notice form
-  
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4; // Strictly to fit viewport with more padding
 
-  // ==================== DATA FETCHING ====================
+  // Combined list of users and agents shown in the dashboard table/card list.
+  const [items, setItems] = useState([]);
+
+  // Filter state: all, user, or agent.
+  const [filter, setFilter] = useState('all');
+
+  // Search text used to filter by name, email, or phone number.
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Loading state while users and agents are being fetched.
+  const [loading, setLoading] = useState(true);
+
+  // Stores the selected item for the View Details modal.
+  const [viewModal, setViewModal] = useState(null);
+
+  // Stores delete confirmation data: id, type, and name.
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  // Stores approve confirmation data for pending agents.
+  const [approveConfirm, setApproveConfirm] = useState(null);
+
+  // Controls Add User modal visibility.
+  const [addUserModal, setAddUserModal] = useState(false);
+
+  // Controls Add Agent modal visibility.
+  const [addAgentModal, setAddAgentModal] = useState(false);
+
+  // Controls Send Notice modal visibility.
+  const [noticeModal, setNoticeModal] = useState(false);
+
+  // Separate raw user and agent arrays are kept for NoticeForm recipients.
+  const [users, setUsers] = useState([]);
+  const [agents, setAgents] = useState([]);
+
+  // Pagination state.
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 4;
+
+  // Validates Nepali-style 10 digit phone numbers.
+  // It removes non-digits first, then checks length and starting digit.
+  const validatePhoneNumber = (phone) => {
+    const digitsOnly = phone?.toString().replace(/\D/g, '');
+
+    if (!digitsOnly || digitsOnly.length === 0) {
+      return { valid: false, message: 'Phone number is required' };
+    }
+
+    if (digitsOnly.length !== 10) {
+      return { valid: false, message: 'Phone number must be exactly 10 digits' };
+    }
+
+    if (!/^[6-9]\d{9}$/.test(digitsOnly)) {
+      return { valid: false, message: 'Phone number must start with 6,7,8, or 9' };
+    }
+
+    return { valid: true, message: '', digitsOnly };
+  };
+
+  // Runs once when the dashboard page loads.
+  // It fetches users and agents from the backend.
   useEffect(() => {
     fetchData();
   }, []);
 
-  /**
-   * Fetches users and agents from API
-   * Combines them into a single array for display
-   * Filters out super admin user
-   * Sorts by creation date (newest first)
-   */
+  // Fetches users and agents, combines them, sorts by newest first,
+  // and stores them in dashboard state.
   const fetchData = async () => {
     try {
+      // Token is saved during login.
+      // It is sent to APIs that support Authorization headers.
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-      // Parallel API calls for better performance THAN SEQUENTIAL CALL AND THEN WAITING FOR BOTH TO COMPLETE 
+      // Fetch users and agents in parallel for faster dashboard loading.
       const [usersRes, agentsRes] = await Promise.all([
         fetch('/api/users', { headers: authHeaders }),
         fetch('/api/agents', { headers: authHeaders }),
       ]);
 
-      // Error handling for failed responses
+      // Handle user API error.
       if (!usersRes.ok) {
         const err = await usersRes.json().catch(() => ({}));
         throw new Error(err.error || err.message || 'Failed to fetch users');
       }
+
+      // Handle agent API error.
       if (!agentsRes.ok) {
         const err = await agentsRes.json().catch(() => ({}));
         throw new Error(err.error || err.message || 'Failed to fetch agents');
@@ -68,24 +114,24 @@ export default function DashboardPage() {
       const usersData = await usersRes.json();
       const agentsData = await agentsRes.json();
 
-      // Defensive: ensure we have arrays even if API returns unexpected format
+      // APIs may return either direct arrays or wrapped objects.
+      // This keeps the frontend safe for both response formats.
       const usersArray = Array.isArray(usersData) ? usersData : (usersData?.users || []);
       const agentsArray = Array.isArray(agentsData) ? agentsData : (agentsData?.agents || []);
 
-      // Store for notice form reference
       setUsers(usersArray);
       setAgents(agentsArray);
 
-      // CRITICAL: Filter out super admin from display to prevent accidental deletion/modification
+      // Hide default super admin from dashboard list so admin cannot manage/delete it.
       const filteredUsers = usersArray.filter((u) => u.email !== 'admin@example.com');
 
-      // Combine users and agents with type identifiers
+      // Add a type field so the UI can distinguish users and agents.
       const combined = [
         ...filteredUsers.map((u) => ({ ...u, type: 'user' })),
         ...agentsArray.map((a) => ({ ...a, type: 'agent', approved: a.approved || false })),
       ];
 
-      // Sort by createdAt descending (newest first)
+      // Newest accounts appear first.
       combined.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -100,17 +146,11 @@ export default function DashboardPage() {
     }
   };
 
-  // ==================== CRUD OPERATIONS ====================
-  
-  /**
-   * Handles delete button click
-   * Prevents deletion of super admin user
-   * Shows confirmation modal
-   */
+  // Opens delete confirmation modal.
+  // Prevents deleting the hard-coded super admin account.
   const handleDeleteClick = (id, type) => {
-    const item = items.find(i => i.id === id);
+    const item = items.find((i) => i.id === id);
 
-    // SECURITY: Prevent deletion of super admin
     if (type === 'user' && item && item.email === 'admin@example.com') {
       toast.error('Cannot delete super admin user!');
       return;
@@ -120,11 +160,7 @@ export default function DashboardPage() {
     setDeleteConfirm({ id, type, name: itemName });
   };
 
-  /**
-   * Executes delete after confirmation
-   * Makes DELETE request to appropriate API endpoint
-   * Refreshes data on success
-   */
+  // Confirms deletion and calls the correct API based on item type.
   const handleDeleteConfirm = async () => {
     if (!deleteConfirm) return;
 
@@ -146,7 +182,7 @@ export default function DashboardPage() {
 
       if (response.ok) {
         toast.success('Successfully deleted!');
-        await fetchData(); // Refresh the list
+        await fetchData();
       } else {
         const data = await response.json();
         toast.error(`Failed to delete: ${data.error || data.message || 'Unknown error'}`);
@@ -157,10 +193,7 @@ export default function DashboardPage() {
     }
   };
 
-  /**
-   * Handles agent approval
-   * Updates agent status to approved
-   */
+  // Approves a pending agent by setting approved: true.
   const handleApproveConfirm = async () => {
     if (!approveConfirm) return;
 
@@ -188,11 +221,15 @@ export default function DashboardPage() {
     }
   };
 
-  /**
-   * Creates a new user from admin panel
-   * Sets verified: true so user is immediately active
-   */
+  // Creates a new user from UserForm data.
   const handleAddUser = async (userData) => {
+    const phoneValidation = validatePhoneNumber(userData.phoneNumber);
+
+    if (!phoneValidation.valid) {
+      toast.error(phoneValidation.message);
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
@@ -205,7 +242,8 @@ export default function DashboardPage() {
         },
         body: JSON.stringify({
           ...userData,
-          verified: true, // Admin-created users skip email verification
+          phoneNumber: phoneValidation.digitsOnly,
+          verified: true,
         }),
       });
 
@@ -224,18 +262,34 @@ export default function DashboardPage() {
     }
   };
 
-  /**
-   * Creates a new agent from admin panel
-   * Sets approved: true for admin-created agents (bypasses approval workflow)
-   */
+  // Creates a new agent from AgentForm FormData.
   const handleAddAgent = async (formData) => {
+    const phoneNumber = formData.get('phoneNumber');
+    const phoneValidation = validatePhoneNumber(phoneNumber);
+
+    if (!phoneValidation.valid) {
+      toast.error(phoneValidation.message);
+      return;
+    }
+
     try {
-      // Admin-created agents are pre-approved
-      formData.append('approved', 'true');
+      const validatedFormData = new FormData();
+
+      // Copy all form fields, but replace phone number with cleaned digits.
+      for (const [key, value] of formData.entries()) {
+        if (key === 'phoneNumber') {
+          validatedFormData.append(key, phoneValidation.digitsOnly);
+        } else {
+          validatedFormData.append(key, value);
+        }
+      }
+
+      // Admin-created agent is approved immediately.
+      validatedFormData.append('approved', 'true');
 
       const response = await fetch('/api/agents', {
         method: 'POST',
-        body: formData,
+        body: validatedFormData,
       });
 
       const data = await response.json();
@@ -253,15 +307,17 @@ export default function DashboardPage() {
     }
   };
 
-  /**
-   * Sends broadcast notice to selected users/agents
-   */
+  // Sends a notice using NoticeForm data.
   const handleSendNotice = async (noticeData) => {
     try {
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
       const response = await fetch('/api/admin/notices/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
         body: JSON.stringify(noticeData),
       });
@@ -279,19 +335,16 @@ export default function DashboardPage() {
     }
   };
 
+  // Redirects to login after confirmation.
+  // Note: this does not clear localStorage. If you want true logout,
+  // also remove token and user from localStorage.
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
       router.push('/login');
     }
   };
 
-  // ==================== FILTERING & PAGINATION ====================
-  
-  /**
-   * Filters items based on:
-   * - Type filter (all/users/agents)
-   * - Search query (name, email, phone)
-   */
+  // Applies filter and search to the combined user/agent list.
   const filteredItems = items.filter((item) => {
     const matchesFilter =
       filter === 'all' ||
@@ -307,109 +360,91 @@ export default function DashboardPage() {
     return matchesFilter && matchesSearch;
   });
 
-  // Pagination calculations
-  // Use the filtered result length so page count updates correctly when searching or filtering
+  // Pagination calculation.
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
-
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * itemsPerPage;
   const paginatedItems = filteredItems.slice(startIndex, startIndex + itemsPerPage);
 
-  // ==================== RENDER ====================
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Desktop sidebar navigation. */}
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Mobile header with hamburger built in */}
+        {/* Mobile header appears on smaller screens. */}
         <MobileHeader title="Admin Dashboard" subtitle="Manage users, agents, and system settings." />
 
-        {/* Desktop header with action buttons */}
+        {/* Desktop top accent line. */}
         <div className="hidden lg:flex h-1 bg-gradient-to-r from-blue-500 to-indigo-600 flex-shrink-0"></div>
+
+        {/* Desktop dashboard header with action buttons. */}
         <div className="hidden lg:flex bg-white px-6 py-4 border-b flex-shrink-0 flex-col sm:flex-row sm:items-center justify-between shadow-sm gap-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-xs text-gray-500 mt-1">Manage users, agents, and system settings.</p>
           </div>
-          
-          {/* Admin Action Buttons */}
+
           <div className="flex gap-2 flex-wrap">
+            {/* Opens Add User modal. */}
             <button
               onClick={() => setAddUserModal(true)}
               className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 shadow-sm"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
               Add User
             </button>
+
+            {/* Opens Add Agent modal. */}
             <button
               onClick={() => setAddAgentModal(true)}
               className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1.5 shadow-sm"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
               Add Agent
             </button>
+
+            {/* Opens Send Notice modal. */}
             <button
               onClick={() => setNoticeModal(true)}
               className="px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1.5 shadow-sm"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-              </svg>
               Send Notice
             </button>
           </div>
         </div>
 
-        {/* Main Content Area */}
         <div className="flex-1 flex flex-col w-full">
           <div className="p-4 flex flex-col flex-1">
-
-            {/* Filters and Search Bar */}
+            {/* Filter and search controls. */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 flex-shrink-0">
               <div className="flex gap-2 flex-wrap">
                 <button
-                  onClick={() => {
-                    setFilter('all');
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filter === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
+                  onClick={() => setFilter('all')}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
                 >
                   All
                 </button>
+
                 <button
-                  onClick={() => {
-                    setFilter('user');
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filter === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
+                  onClick={() => setFilter('user')}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    filter === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
                 >
                   USER
                 </button>
+
                 <button
-                  onClick={() => {
-                    setFilter('agent');
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${filter === 'agent'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
+                  onClick={() => setFilter('agent')}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    filter === 'agent' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
                 >
                   AGENT
                 </button>
               </div>
 
-              {/* Search Input */}
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -417,19 +452,14 @@ export default function DashboardPage() {
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    setCurrentPage(1); // Reset to first page on search
+                    setCurrentPage(1);
                   }}
                   className="px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs w-full sm:w-auto max-w-xs text-gray-900 placeholder-gray-500"
                 />
-                <button className="p-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-shrink-0">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </button>
               </div>
             </div>
 
-            {/* User/Agent Cards Display */}
+            {/* User/agent list container. */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="divide-y divide-gray-200">
                 {loading ? (
@@ -439,63 +469,79 @@ export default function DashboardPage() {
                 ) : (
                   paginatedItems.map((item) => (
                     <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors">
-                      
-                      {/* Row 1: Avatar + Name + Action Buttons */}
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3 min-w-0">
+                          {/* Avatar or first letter fallback. */}
                           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 flex-shrink-0">
                             {item.profilePicture || item.photoUrl ? (
-                              <img src={item.profilePicture || item.photoUrl} alt={item.name} className="w-full h-full object-cover" />
+                              <img
+                                src={item.profilePicture || item.photoUrl}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
-                              <span className="text-sm font-bold text-slate-500 capitalize">{item.name?.charAt(0) || 'U'}</span>
+                              <span className="text-sm font-bold text-slate-500 capitalize">
+                                {item.name?.charAt(0) || 'U'}
+                              </span>
                             )}
                           </div>
+
                           <span className="text-sm font-semibold text-gray-900 truncate">{item.name}</span>
                         </div>
-                        
-                        {/* Action Buttons: View, Delete, Approve (for pending agents) */}
+
                         <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                          <button onClick={() => setViewModal(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="View">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
+                          {/* View modal button. */}
+                          <button
+                            onClick={() => setViewModal(item)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                            title="View"
+                          >
+                            View
                           </button>
-                          <button onClick={() => handleDeleteClick(item.id, item.type)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Delete">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+
+                          {/* Delete confirmation button. */}
+                          <button
+                            onClick={() => handleDeleteClick(item.id, item.type)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                            title="Delete"
+                          >
+                            Delete
                           </button>
-                          {/* Only show approve button for pending agents */}
+
+                          {/* Approve button only appears for pending agents. */}
                           {item.type === 'agent' && !item.approved && (
-                            <button onClick={() => setApproveConfirm({ id: item.id, name: item.name })} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Approve">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
+                            <button
+                              onClick={() => setApproveConfirm({ id: item.id, name: item.name })}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                              title="Approve"
+                            >
+                              Approve
                             </button>
                           )}
                         </div>
                       </div>
-                      
-                      {/* Row 2: Phone Number */}
+
                       <div className="flex items-center gap-2 mb-1 pl-1">
                         <span className="text-xs font-medium text-gray-400 w-14 flex-shrink-0">Phone:</span>
                         <span className="text-xs text-gray-700">{item.phoneNumber}</span>
                       </div>
-                      
-                      {/* Row 3: Email */}
+
                       <div className="flex items-center gap-2 mb-2 pl-1">
                         <span className="text-xs font-medium text-gray-400 w-14 flex-shrink-0">Email:</span>
                         <span className="text-xs text-gray-700 break-all">{item.email}</span>
                       </div>
-                      
-                      {/* Row 4: Status Badges */}
+
                       <div className="flex gap-2 pl-1">
                         <span className="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                           {item.type === 'user' ? 'User' : 'Agent'}
                         </span>
+
                         {item.type === 'agent' && (
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              item.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                          >
                             {item.approved ? 'Approved' : 'Pending'}
                           </span>
                         )}
@@ -505,7 +551,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Pagination Controls */}
+              {/* Pagination buttons. */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-end gap-1.5 text-xs text-gray-700 bg-gray-50 px-4 py-3 border-t border-gray-200">
                   <span className="mr-0.5">Show</span>
@@ -516,10 +562,11 @@ export default function DashboardPage() {
                         key={pageNumber}
                         type="button"
                         onClick={() => setCurrentPage(pageNumber)}
-                        className={`px-2 py-0.5 rounded border text-xs transition-colors ${safeCurrentPage === pageNumber
+                        className={`px-2 py-0.5 rounded border text-xs transition-colors ${
+                          safeCurrentPage === pageNumber
                             ? 'bg-blue-600 text-white border-blue-600'
                             : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
-                          }`}
+                        }`}
                       >
                         {pageNumber}
                       </button>
@@ -532,9 +579,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ==================== MODALS ==================== */}
-
-      {/* View Details Modal */}
+      {/* View Details modal. */}
       {viewModal && (
         <div
           className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm transition-opacity"
@@ -544,70 +589,11 @@ export default function DashboardPage() {
             className="bg-white rounded-xl shadow-2xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">View Details</h2>
-              <button
-                onClick={() => setViewModal(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            {/* Profile/Photo Display */}
-            {(viewModal.profilePicture || (viewModal.type === 'agent' && 'photoUrl' in viewModal && viewModal.photoUrl)) ? (
-              <div className="mb-8 flex justify-center pt-2">
-                <div className={`relative overflow-hidden border-4 border-white shadow-xl ${viewModal.type === 'user' ? 'w-44 h-44 rounded-full' : 'w-full max-w-sm h-80 rounded-2xl'}`}>
-                  <img
-                    src={viewModal.profilePicture || viewModal.photoUrl}
-                    alt={viewModal.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-            ) : viewModal.type === 'user' ? (
-              <div className="mb-8 flex justify-center pt-2">
-                <div className="w-44 h-44 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center border-4 border-white shadow-lg text-slate-300">
-                  <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-              </div>
-            ) : null}
-
-            {/* Details Grid */}
-            <div className="bg-gray-50 rounded-xl p-5 space-y-4">
-              <div className="flex items-start gap-4">
-                <span className="font-semibold text-gray-700 w-24 flex-shrink-0">Email:</span>
-                <span className="text-gray-900 break-words">{viewModal.email}</span>
-              </div>
-              <div className="flex items-start gap-4">
-                <span className="font-semibold text-gray-700 w-24 flex-shrink-0">Phone:</span>
-                <span className="text-gray-900">{viewModal.phoneNumber}</span>
-              </div>
-              <div className="flex items-start gap-4">
-                <span className="font-semibold text-gray-700 w-24 flex-shrink-0">Address:</span>
-                <span className="text-gray-900 break-words">{viewModal.address}</span>
-              </div>
-              {viewModal.type === 'agent' && (
-                <div className="flex items-start gap-4">
-                  <span className="font-semibold text-gray-700 w-24 flex-shrink-0">Status:</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${viewModal.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {viewModal.approved ? 'Approved' : 'Pending'}
-                  </span>
-                </div>
-              )}
-              {viewModal.type === 'user' && 'role' in viewModal && (
-                <div className="flex items-start gap-4">
-                  <span className="font-semibold text-gray-700 w-24 flex-shrink-0">Role:</span>
-                  <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-                    {viewModal.role}
-                  </span>
-                </div>
-              )}
-            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">View Details</h2>
+            <p className="text-gray-900 font-semibold">{viewModal.name}</p>
+            <p className="text-gray-700">{viewModal.email}</p>
+            <p className="text-gray-700">{viewModal.phoneNumber}</p>
+            <p className="text-gray-700">{viewModal.address}</p>
 
             <div className="mt-6 flex justify-end">
               <button
@@ -621,7 +607,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation modal. */}
       {deleteConfirm && (
         <div
           className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm transition-opacity"
@@ -631,34 +617,19 @@ export default function DashboardPage() {
             className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 transform transition-all"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-bold text-gray-900">Delete Confirmation</h2>
-              </div>
-              <p className="text-gray-600 mb-3">
-                Are you sure you want to delete this {deleteConfirm.type}?
-              </p>
-              <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                <p className="text-lg font-semibold text-gray-900">
-                  {deleteConfirm.name}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {deleteConfirm.type.toUpperCase()}
-                </p>
-              </div>
-              <p className="text-red-600 text-sm font-medium">
-                ⚠️ This action cannot be undone!
-              </p>
-            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Delete Confirmation</h2>
+            <p className="text-gray-600 mb-3">
+              Are you sure you want to delete this {deleteConfirm.type}?
+            </p>
+            <p className="text-lg font-semibold text-gray-900">{deleteConfirm.name}</p>
+            <p className="text-red-600 text-sm font-medium mt-4">This action cannot be undone!</p>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 mt-6">
               <button
-                onClick={() => setDeleteConfirm(null)}
+                onClick={() => {
+                  setDeleteConfirm(null);
+                  toast.info('Deletion cancelled');
+                }}
                 className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
               >
                 Cancel
@@ -674,7 +645,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Approve Confirmation Modal */}
+      {/* Approve Agent modal. */}
       {approveConfirm && (
         <div
           className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm transition-opacity"
@@ -684,29 +655,11 @@ export default function DashboardPage() {
             className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 transform transition-all"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-bold text-gray-900">Approve Agent</h2>
-              </div>
-              <p className="text-gray-600 mb-3">
-                Are you sure you want to approve this agent?
-              </p>
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-lg font-semibold text-gray-900">
-                  {approveConfirm.name}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Once approved, the agent will be able to login and access the system.
-                </p>
-              </div>
-            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Approve Agent</h2>
+            <p className="text-gray-600 mb-3">Are you sure you want to approve this agent?</p>
+            <p className="text-lg font-semibold text-gray-900">{approveConfirm.name}</p>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setApproveConfirm(null)}
                 className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
@@ -724,7 +677,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Add User Modal */}
+      {/* Add User modal. UserForm calls handleAddUser on submit. */}
       {addUserModal && (
         <div
           className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm transition-opacity"
@@ -734,26 +687,13 @@ export default function DashboardPage() {
             className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">Add New User</h2>
-              <button
-                onClick={() => setAddUserModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <UserForm
-              onSubmit={handleAddUser}
-              onCancel={() => setAddUserModal(false)}
-            />
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Add New User</h2>
+            <UserForm onSubmit={handleAddUser} onCancel={() => setAddUserModal(false)} />
           </div>
         </div>
       )}
 
-      {/* Add Agent Modal */}
+      {/* Add Agent modal. AgentForm calls handleAddAgent on submit. */}
       {addAgentModal && (
         <div
           className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm transition-opacity"
@@ -763,26 +703,13 @@ export default function DashboardPage() {
             className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">Add New Agent</h2>
-              <button
-                onClick={() => setAddAgentModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <AgentForm
-              onSubmit={handleAddAgent}
-              onCancel={() => setAddAgentModal(false)}
-            />
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Add New Agent</h2>
+            <AgentForm onSubmit={handleAddAgent} onCancel={() => setAddAgentModal(false)} />
           </div>
         </div>
       )}
 
-      {/* Notice Modal */}
+      {/* Notice modal. NoticeForm receives users and agents as recipients. */}
       {noticeModal && (
         <NoticeForm
           onClose={() => setNoticeModal(false)}
