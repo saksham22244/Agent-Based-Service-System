@@ -93,8 +93,8 @@ export default function AgentManagementPage() {
     setLoading(true);
     try {
       const payments = await fetchAgentPayments(agent.id);
-      setSelectedAgent({
-        ...agent,
+      setSelectedAgent({ // Combine agent details with payment info for the detail view and oprn another page
+        ...agent, // Include all agent details
         payments: payments,
         // Calculate total paid from successful payments only
         totalPaid: payments
@@ -175,10 +175,10 @@ export default function AgentManagementPage() {
   // ==================== RENDER SELECTED AGENT VIEW ====================
   if (selectedAgent) {
     return (
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50"> 
         <Sidebar />
-        <div className="flex-1">
-          <div className="max-w-6xl mx-auto p-6">
+        <div className="flex-1"> 
+          <div className="max-w-5xl mx-auto p-6"> 
             
             {/* Header with back button and agent info */}
             <div className="flex items-center justify-between mb-6">
@@ -478,7 +478,7 @@ export default function AgentManagementPage() {
                   
                   {/* Action Button */}
                   <button className="w-full text-blue-600 bg-blue-50 hover:bg-blue-100 font-medium text-sm py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2">
-                    <FaHistory />
+                    <FaHistory /> 
                     View Payment History
                   </button>
                 </div>
